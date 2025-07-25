@@ -1,0 +1,12 @@
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+plotly
+gdown
+geopandas
+pycountry
+statsmodels
+scikit-learn
+prophet
