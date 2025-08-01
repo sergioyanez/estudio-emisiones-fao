@@ -401,7 +401,6 @@ st.markdown("Expansión en la cobertura de países a partir de 1990*  \n"
             "En total, se incorporan 52 nuevos países/regiones después de 1990, lo que puede influir en los análisis agregados si no se controla adecuadamente.*  \n"
             "Para evitar conclusiones erróneas, este notebook incluye filtros y comparaciones que tienen en cuenta este cambio estructural en la base de datos.*")
 
-
 #Agrupar por país y año
 df_anual = df_countries.groupby(['Área', 'Año']).size().reset_index(name='records')
 df_group = df_countries.groupby('Área').agg({'Valor_Mt': 'sum'}).reset_index()
@@ -436,6 +435,26 @@ df_serie = df_pais.groupby(df_pais['Año'].dt.year)['Valor_Mt'].sum().reset_inde
 fig_pais = px.line(df_serie, x='Año', y='Valor_Mt', title=f"Evolución de emisiones en {pais_sel}")
 st.plotly_chart(fig_pais, use_container_width=True)
 
+st.markdown("""## Expansión en la cobertura de países a partir de 1990
+A partir del año 1990 se observa un incremento significativo en la cantidad de países con datos disponibles. Este cambio no necesariamente implica un aumento real en las emisiones, sino una mejora en la cobertura geográfica del dataset.
+
+En total, se incorporan 52 nuevos países/regiones después de 1990, lo que puede influir en los análisis agregados si no se controla adecuadamente.
+
+Para evitar conclusiones erróneas, este notebook incluye filtros y comparaciones que tienen en cuenta este cambio estructural en la base de datos.""")
+
+
+st.subheader("Nuevas áreas registradas después de 1990")
+# Conjuntos de países por período
+df_cleaned['Año'] = df_cleaned['Año'].dt.year
+areas_before_1990 = set(df_cleaned[df_cleaned['Año'] < 1990]['Área'].unique())
+areas_after_1990 = set(df_cleaned[df_cleaned['Año'] > 1990]['Área'].unique())
+# Nuevas áreas que no estaban antes
+new_areas = sorted(list(areas_after_1990 - areas_before_1990))
+st.write(f"Cantidad de nuevas áreas: **{len(new_areas)}**")
+for area in new_areas:
+    st.markdown(f"- {area}")
+
+
 # Top países
 st.subheader("Top 10 países con más emisiones")
 df_top = df_group.sort_values("Valor_Mt", ascending=False).head(10)
@@ -449,8 +468,8 @@ st.markdown("El número de productos reportados cambia significativamente con el
             "Este cambio refleja una expansión en el nivel de detalle del inventario de emisiones, tanto en cobertura temática como en precisión metodológica. "
             "Sin embargo, también introduce un **sesgo estructural** en los análisis temporales agregados.")
 
-products_before_1990 = set(df_cleaned[df_cleaned['Año'] < '1990']['Producto'].unique())
-products_after_1990 = set(df_cleaned[df_cleaned['Año'] >= '1990']['Producto'].unique())
+products_before_1990 = set(df_cleaned[df_cleaned['Año'] < 1990]['Producto'].unique())
+products_after_1990 = set(df_cleaned[df_cleaned['Año'] >= 1990]['Producto'].unique())
 
 products = products_before_1990 & products_after_1990
 new_products = products_after_1990 - products_before_1990
@@ -462,20 +481,35 @@ st.write(f"📦 Productos después de 1990: {len(products_after_1990)}")
 st.write(f"🔁 Productos comunes: {len(products)}")
 st.write(f"🆕 Productos nuevos desde 1990: {len(new_products)}")
 
+st.subheader("""Además, el dataset incluye algunos productos agregados. Es decir, productos que incluyen dentro a otros productos. Es importante saber diferenciarlos para que las comparaciones tengan sentido.""")
+codes_agg = [6518, 6516, 6517, 6996, 6995, 5084, 5085,
+             6825, 6829, 6824, 67292, 67291, 69921, 6821, 6817, 6820, 1707, 1711]
+aggregated_products = df[df['Código del producto'].isin(codes_agg)]['Producto'].unique()
+st.subheader("Productos agregados")
+for producto in aggregated_products:
+    st.markdown(f"- {producto}")
 
 
-st.markdown("### Delimitación temporal del análisis  \n"
-            "Debido a los cambios estructurales observados en la cobertura geográfica y temática del dataset, se ha decidido restringir el análisis a los datos disponibles **a partir del año 1990**."
-            "Esta decisión responde a dos razones principales:  \n"
-            "- **Mayor cobertura geográfica**: a partir de 1990 se incorporan 52 nuevos países, alcanzando un total de 238. Esto garantiza que los análisis comparativos entre regiones y países no estén sesgados por datos ausentes en décadas anteriores.  \n"
-            "- **Mayor cobertura temática**: el número de productos reportados aumenta de 16 (antes de 1990) a más de 40 (después), lo que introduce una mejora en el detalle metodológico, pero también limita la comparabilidad histórica.  \n"
-            "### Justificación  \n"
-            "Trabajar con el subconjunto de datos posterior a 1990 permite realizar análisis **más consistentes, representativos y comparables** reduciendo el riesgo de conclusiones erróneas causadas por diferencias de cobertura y disponibilidad de información."
-            "En consecuencia, **todas las visualizaciones y estadísticas agregadas en este informe se basarán en datos desde 1990 a 2025, por lo cual no vamos a tener en cuenta estimaciones futuras**."
+st.markdown("""## Delimitación temporal del análisis
+
+Debido a los cambios estructurales observados en la cobertura geográfica y temática del dataset, se ha decidido restringir el análisis a los datos disponibles **a partir del año 1990**.
+
+Esta decisión responde a dos razones principales:
+
+- **Mayor cobertura geográfica**: a partir de 1990 se incorporan 52 nuevos países, alcanzando un total de 238. Esto garantiza que los análisis comparativos entre regiones y países no estén sesgados por datos ausentes en décadas anteriores.
+  
+- **Mayor cobertura temática**: el número de productos reportados aumenta de 16 (antes de 1990) a más de 40 (después), lo que introduce una mejora en el detalle metodológico, pero también limita la comparabilidad histórica.
+
+### Justificación
+
+Trabajar con el subconjunto de datos posterior a 1990 permite realizar análisis **más consistentes, representativos y comparables** reduciendo el riesgo de conclusiones erróneas causadas por diferencias de cobertura y disponibilidad de información.
+
+En consecuencia, **todas las visualizaciones y estadísticas agregadas en este informe se basarán en datos desde 1990 hasta la actualidad, por lo cual no vamos a tener en cuenta estimaciones futuras**."""
 )
 
 df_completed = df_cleaned.copy()
-df_01 = df_cleaned[(df_cleaned['Año'] >= '1990') & (df_cleaned['Año'] <= '2025')].copy()
+df_01 = df_cleaned[(df_cleaned['Año'] >= 1990) & (df_cleaned['Año'] <= 2025)].copy()
+
 
 st.markdown("## Variables de Emisión  \n"
             "El conjunto de datos original incluye múltiples tipos de elementos relacionados con las emisiones de gases, entre ellos: ")
@@ -726,7 +760,7 @@ En el gráfico de torta, se visualiza el **aporte proporcional de cada continent
 
 df_covid = df_fao[
     (df_fao['Área'].isin(continents)) &
-    (df_fao['Año'].between('2017', '2022')) &
+    (df_fao['Año'].between(2017, 2022)) &
     (df_fao['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
     (df_fao['Producto'].isin(['Emisiones totales incluyendo LULUCF',
                               'Pre y\xa0post-producción',
@@ -739,7 +773,7 @@ df_pct = (
     .groupby(['Área','Producto','Año'])['Valor_Mt'].sum()
     .unstack('Año')
     .pipe(lambda d: d.pct_change(axis=1)*100)
-    [['2019','2020', '2021','2022']]            # columnas de interés
+    [[2019,2020, 2021,2022]]            # columnas de interés
     .reset_index()
 )
 # Título y descripción
@@ -762,7 +796,6 @@ styled_df = (
 st.dataframe(styled_df, use_container_width=True)
 
 st.subheader("Distribución porcentual anual de emisiones por continente.")
-
 world = df_emissions_by_continent_year[df_emissions_by_continent_year['Área'] == 'Mundo']
 conts = df_emissions_by_continent_year[df_emissions_by_continent_year['Área'] != 'Mundo']
 df_share = conts.merge(world, on='Año', suffixes=('_cont', '_world'))
@@ -772,13 +805,6 @@ pivot = (
             .loc[:, ['Asia','Américas','Europa','África','Oceanía']]
             .fillna(0)
 )
-
-# Saca las horas, minutos y segundo, sólo deja el año
-pivot = pivot.rename_axis('Año').reset_index()
-pivot['Año'] = pivot['Año'].dt.year
-pivot.set_index('Año', inplace=True)
-
-
 # Estilo y paleta
 sns.set_style('whitegrid')
 palette = sns.color_palette('Set2', len(pivot.columns))
@@ -816,31 +842,33 @@ Como se puede observar en el gráfico, **el eje de las emisiones se desplazó de
 **Asia es hoy el principal emisor absoluto y relativo. Además, es el motor del crecimiento de las emisiones a nivel global.**
 """)
 
+
+st.subheader('Promedio Anual de Emisiones Totales por década y continente')
 df_dec = df_emissions_by_continent_year.copy()
 
-# Convertir 'Año' a datetime si no lo está
-if not pd.api.types.is_datetime64_any_dtype(df_dec['Año']):
-    df_dec['Año'] = pd.to_datetime(df_dec['Año'], errors='coerce')
-
-# Extraer década como número
-df_dec['Década'] = df_dec['Año'].dt.year // 10 * 10
+# Crear columna de década
+df_dec['Década'] = (df_dec['Año'] // 10) * 10
 
 # Excluir 'Mundo'
 df_dec = df_dec[df_dec['Área'] != 'Mundo']
 
-# Agrupar
+# Agrupar por década y área
 pivot_dec = (
-    df_dec.groupby(['Década','Área'])['Valor_Gt']
+    df_dec.groupby(['Década', 'Área'])['Valor_Gt']
           .mean()
           .reset_index()
 )
 
-# Estilo
+# --- Gráfico ---
 sns.set_style('whitegrid')
 fig, ax = plt.subplots(figsize=(10, 5))
 
-sns.barplot(data=pivot_dec,
-            x='Década', y='Valor_Gt', hue='Área', palette='Set2', ax=ax)
+sns.barplot(
+    data=pivot_dec,
+    x='Década', y='Valor_Gt', hue='Área',
+    palette='Set2',
+    ax=ax
+)
 
 ax.set_title('Promedio anual de CO₂-eq por década y continente')
 ax.set_ylabel('Gt CO₂-eq')
@@ -863,93 +891,88 @@ Es decir, es todo lo que ocurre dentro del establecimiento agropecuario.
 - Cambios en el uso de la tierra: deforestación, conversión neta de bosques, drenaje de suelos orgánicos, incendios, etc.
 - Pre y post-producción: procesado, envasado, transporte, venta y desperdicio de alimentos. Todo lo que sucede antes y después de la puerta de la finca
 
-Estos componentes agrupados representan las Emisiones Totales incluyendo LULUCF. Al analizarlos por separado, podemos definir con precisión qué porción de las emisiones proviene de la finca, de la conversión de ecosistemas o de la cadena de suministro, lo cual es información importante para definir politicas eficaces en cada región.
+Estos componentes agrupados representan las Emisiones Totales incluyendo LULUCF. Al analizarlos por separado, podemos definir con precisión qué porción de las emisiones proviene de la finca, de la conversión de ecosistemas o de la cadena de suministro, lo cual es información importante para definir politicas eficaces en cada región.
 """)
 
-
-
-# ---------- CONVERSIÓN DE DATOS ----------
-df_fao['Año'] = pd.to_datetime(df_fao['Año'], errors='coerce').dt.year
-df_fao['Elemento'] = df_fao['Elemento'].astype(str)
-
-# ---------- PARÁMETROS ----------
-regions = ['Américas', 'Asia', 'Europa', 'Oceanía', 'África']
-products = ["Farm gate", "Cambios de uso de la tierra", "Pre y\xa0post-producción"]
-gas = "CO2eq"
+# --- Parámetros ---
+continents = ['Américas', 'Asia', 'Europa', 'Oceanía', 'África']
+products = ['Farm gate', 'Cambios de uso de la tierra', 'Pre y\xa0post-producción']
+gas = "Emisiones (CO2eq) (AR5)"
 years = [1990, 2010, 2022]
 
-# ---------- FILTRADO ----------
+# --- Filtro del DataFrame ---
 df_products_continents = df_fao[
-    df_fao['Producto'].isin(products) &
-    df_fao['Área'].isin(regions) &
-    df_fao['Año'].isin(years) &
-    df_fao['Elemento'].str.contains(gas, case=False, na=False)
+    (df_fao['Producto'].isin(products)) &
+    (df_fao['Área'].isin(continents)) &
+    (df_fao['Año'].isin(years)) &
+    (df_fao['Elemento'] == gas)
 ].copy()
 
-# ---------- PIVOTEO ----------
+# --- Pivot ---
 pivot = (
     df_products_continents
-    .pivot_table(index=['Año', 'Área'],
-                 columns='Producto',
-                 values='Valor_Gt',
-                 aggfunc='sum')
+    .pivot_table(index=['Año', 'Área'], columns='Producto', values='Valor_Gt', aggfunc='sum')
     .sort_index(level=1)
     .reset_index()
-    .sort_values(['Área', 'Año'], ascending=[True, False])
-    .reset_index(drop=True)
 )
 
-if pivot.empty:
-    st.warning("No hay datos disponibles con los filtros actuales.")
-else:
-    colors = ['#0066CC', '#0eca1c', '#ff5733']
-    bar_h = 0.8
-    gap = 1
-    offset = bar_h
-    n_y = len(years)
-    y_pos = []
-    for g in range(len(regions)):
-        base = offset + g*(n_y*bar_h + gap)
-        y_pos.extend(base + np.arange(n_y)*bar_h)
+pivot = pivot.sort_values(['Área', 'Año'], ascending=[True, False]).reset_index(drop=True)
 
-    fig, ax = plt.subplots(figsize=(10, 7))
-    left = np.zeros(len(y_pos))
+# --- Configuración del gráfico ---
+colors = ['#0066CC', '#0eca1c', '#ff5733']
+bar_h = 0.8
+gap = 1
+offset = bar_h
+n_y = len(years)
+y_pos = []
 
-    for (col, color) in zip(products, colors):
-        if col in pivot.columns:
-            ax.barh(y_pos, pivot[col], left=left,
-                    height=bar_h, color=color, edgecolor='white', label=col)
-            left += pivot[col].fillna(0).values
-        else:
-            st.warning(f"'{col}' no está presente en los datos filtrados.")
+# --- Posiciones verticales para barras por continente ---
+for g in range(len(continents)):
+    base = offset + g * (n_y * bar_h + gap)
+    y_pos.extend(base + np.arange(n_y) * bar_h)
 
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(pivot['Año'])
-    ax.set_axisbelow(True)
-    ax.grid(axis='y')
+fig, ax = plt.subplots(figsize=(10, 7))
+left = np.zeros(len(y_pos))
 
-    ax2 = ax.twinx()
-    mid_pos = [offset*0.1 + g*(n_y*bar_h + gap) + (n_y*bar_h) - bar_h
-               for g in range(len(regions))]
-    ax2.set_yticks(mid_pos)
-    ax2.set_yticklabels(regions, fontsize=15, weight='bold')
+# --- Barras horizontales apiladas ---
+for (col, color) in zip(products, colors):
+    ax.barh(y_pos, pivot[col], left=left,
+            height=bar_h, color=color, edgecolor='white', label=col)
+    left += pivot[col].values
 
-    ax2.yaxis.set_ticks_position('left')
-    ax2.spines['left'].set_position(('outward', 70))
-    ax2.tick_params(axis='y', length=0)
-    ax.spines['left'].set_visible(False)
-    ax2.spines['right'].set_visible(False)
-    ax2.grid(False)
+# --- Ejes Y principales (años) ---
+ax.set_yticks(y_pos)
+ax.set_yticklabels(pivot['Año'])
+ax.set_axisbelow(True)
+ax.grid(axis='y')
 
-    ax.set_xlabel('Gt CO₂-eq (AR5)')
-    ax.set_title('Total Emisiones incluyendo LULUCF CO₂-eq por componente 1990 · 2010 · 2022')
-    ax.legend(title='Producto',
-              loc='upper right',
-              frameon=True,
-              framealpha=.9,
-              borderpad=.6, fontsize=9)
-    plt.tight_layout()
-    st.pyplot(fig)
+# --- Eje Y secundario (continentes) ---
+ax2 = ax.twinx()
+mid_pos = [offset * 0.1 + g * (n_y * bar_h + gap) + (n_y * bar_h) - bar_h
+           for g in range(len(continents))]
+ax2.set_yticks(mid_pos)
+ax2.set_yticklabels(continents, fontsize=15, weight='bold')
+ax2.yaxis.set_ticks_position('left')
+ax2.spines['left'].set_position(('outward', 70))
+ax2.tick_params(axis='y', length=0)
+ax.spines['left'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+ax2.grid(False)
+
+# --- Títulos y leyenda ---
+ax.set_xlabel('Gt CO₂-eq (AR5)')
+ax.set_title('Total Emisiones CO₂-eq por componente 1990 · 2010 · 2022')
+ax.legend(title='Producto',
+          loc='upper right',
+          frameon=True,
+          framealpha=.9,
+          borderpad=.6, fontsize=9)
+
+plt.tight_layout()
+
+# --- Mostrar en Streamlit ---
+st.subheader("📊 Total Emisiones CO₂-eq por componente (1990, 2010, 2022)")
+st.pyplot(fig)
 
 st.markdown("""
 ---
@@ -1042,8 +1065,12 @@ df_top_countries_emission['Área'] = df_top_countries_emission['Área'].replace(
 fig, axs = plt.subplots(1, 2, figsize=(14, 6),gridspec_kw={'width_ratios': [1.2, 1]})
 
 # --- Subplot 1: Gráfico de barras ---
-sns.barplot(data=df_top_countries_emission,x='Área', y='Valor', hue='Área',
-            palette='Greens_r', ax=axs[0], legend=False)
+sns.barplot(data=df_top_countries_emission, x='Área', y='Valor', hue='Área',
+            palette='Greens_r', ax=axs[0], width=1.0)
+
+# Quitar la leyenda manualmente (en lugar de usar legend=False que lanza error)
+axs[0].legend_.remove()
+
 axs[0].set_title(' Total Emisiones (CO2eq) (AR5)', fontsize=13)
 axs[0].set_xlabel('País')
 axs[0].set_ylabel('Emisiones Totales (kilotones)')
@@ -1062,20 +1089,106 @@ axs[1].pie(
 )
 axs[1].set_title('Participación del Top 10 países emisores sobre el total global', fontsize=13)
 
+# Título global y ajuste de espacio
 fig.suptitle('Top 10 Paises Emisiones (CO2eq) (AR5) (2022)', fontsize=16, y=1.05)
+plt.tight_layout()
+plt.subplots_adjust(wspace=0.4)
+
+# Mostrar en Streamlit
 st.pyplot(fig)
+
 st.markdown("""Interpretación:
 
-- China	Con aproximadamente 14 millones de kt lidera con enorme ventaja ( 2,5 × EEUU).
-- EE. UU: es el segundo país con mas emisiones en el mundo pero, aun así emite menos de la mitad que China.
+- China	Con aproximadamente 14 millones de kt lidera con enorme ventaja ( 2,5 × EEUU).
+- EE. UU: es el segundo país con mas emisiones en el mundo pero, aun así emite menos de la mitad que China.
 - India: se consolida en el tercer lugar, reflejando crecimiento poblacional.
-- Rusia, Indonesia, Brasil, Japón, Irán: tienen valores intermedios (0,6 – 2 millones kt). Mezcla de grandes potencias agrícolas (Brasil, Indonesia) y economías industriales/energéticas (Rusia, Irán, Japón).
-- Arabia Saudita y México	ocupan el puesto 9 y 10 el ranking. Sus emisiones son <10 % de las chinas.
+- Rusia, Indonesia, Brasil, Japón, Irán: tienen valores intermedios (0,6 – 2 millones kt). Mezcla de grandes potencias agrícolas (Brasil, Indonesia) y economías industriales/energéticas (Rusia, Irán, Japón).
+- Arabia Saudita y México	ocupan el puesto 9 y 10 el ranking. Sus emisiones son < 10 % de las chinas.
 
 Se puede observar una desigualdad extrema: el primer país (China) emite casi 75 veces más que el décimo.
 
 Además, en el gráfico de la derecha podemos observar que, en la actualidad, dos tercios de todas las emisiones agro‑alimentarias se concentran en solo diez países (63%). Por lo tanto, el resto de los paises (180 aprox) aportan el otro tercio.
 El gráfico demuestra que las politicas de mitigación global deben hacer foco en unas pocas jurisdicciones. Sin acciones contundentes en esos países, el resto del mundo difícilmente compensará el volumen de emisiones que ahí se genera.""")
+
+st.subheader('Emisiones 2022 — Productos más emisores por país')
+st.markdown("""En el próximo Heatmap de productos x paises
+
+cada celda nos muestra las Emisiones (CO2eq) (AR5) en el año 2022 de cada producto en cada país.
+Esto nos permite ver que paises son más emisores en cada proceso y ver los procesos críticos de cada región, lo cual permite priorizar acciones.
+
+Para este análisis, seleccionamos los 6 paises con más emisiones en el año 2022 (China, EEUU, India, Rusia, Indonesia y Brasil). Estos países representan el 56% del total de emisiones incluyendo LULUCF a nivel global en el año 2022.')
+""")
+
+# Definir regiones de interés
+regions = ['China', 'Estados Unidos de América', 'India', 'Indonesia', 'Brasil', 'Federación de Rusia']
+
+# Filtrar datos para 2022 excluyendo productos agregados
+df_2022 = (
+    df_fao[
+        (df_fao['Año'] == 2022) &
+        (df_fao['Área'].isin(regions)) &
+        (df_fao['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
+        (~df_fao['Código del producto'].isin(codes_agg))
+    ]
+    .copy()
+)
+
+# Correcciones de nombres
+fix = {
+    "Eliminación de desechos de sistemas agroalimentarios": "Eliminación desechos sist. agro",
+}
+fix_countries = {
+    'Estados Unidos de América': 'EEUU',
+    'Federación de Rusia': 'Rusia',
+}
+df_2022['Producto'] = df_2022['Producto'].replace(fix)
+df_2022['Área'] = df_2022['Área'].replace(fix_countries)
+
+# Seleccionar los 15 productos más emisores
+top_products = (
+    df_2022.groupby('Producto')['Valor_Mt'].sum()
+           .nlargest(15).index
+)
+
+df_2022 = df_2022[df_2022['Producto'].isin(top_products)]
+
+# Crear pivot para el heatmap
+pivot = (
+    df_2022
+    .pivot_table(index='Producto', columns='Área',
+                 values='Valor_Mt', aggfunc='sum')
+    .fillna(0)
+    .sort_values('China', ascending=False)
+)
+
+# Crear figura y heatmap
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(pivot, annot=True, fmt='.0f', cmap='Greens',
+            linewidths=.5, linecolor='white', cbar_kws={'label': 'Mt CO₂-eq'}, ax=ax)
+
+ax.set_title('Emisiones CO2 eq 2022 — Productos más emisores en el Top 6 Países')
+ax.set_xlabel('País')
+ax.set_ylabel('')
+plt.tight_layout()
+
+# Mostrar en Streamlit
+st.subheader("🌍 Emisiones CO₂-eq por producto y país (2022)")
+st.pyplot(fig)
+
+st.markdown("""#### Conslusiones:
+- China: el grueso de las emisiones no proviene del campo, sino de la cadena poscosecha y el consumo urbano (desechos y consumo de alimentos).
+- EEUU: tiene valores medianos-altos en casi todas las filas. No tiene un pico, por lo tanto las medidas de acción deberían ser aplicadas de manera multisectorial.
+- India: las emisiones se encuentran diversificadas. Es el mayor emisor por fermentación entérica. Además, el consumo de energía dentro de la finca ya supera a la mayoría de los procesos pos-cosecha.
+- Indonesia: picos sobresalientes en suelos orgánicos drenados y conversión neta de bosques. El drenaje y la quema de turberas  para palma aceitera liberan grandes cantidades de CO2.
+https://rspo.org/es/the-challenges-of-growing-oil-palm-on-peatlands/
+- Rusia: sin celdas mayores a 200 Mt, se destacan las emisiones por desechos y suelos orgánicos. Tiene un perfil más parecido al de Europa que al de Brasil/Indonesia.
+- Brasil: el cambio en el uso del suelo es el motor de las emisiones. Otro pico alto es la fermentación entérica.
+
+
+Conclusiones generales:
+- No hay una única fuente de emisión que domine en todos los paises. Cada economía tiene su debilidad.
+- China y EEUU tienen mayor contaminación en procesos pos-producción (desechos, consumo), mientras Brasil e Indonesia tienen mayores problemas en el sector agrícola.
+- Cuatro de los seis paises tienen emisiones mayores a 150 mt por fermentación entérica, esto indica que la ganadería es un motor de contaminación a nivel global.""")
 
 
 st.subheader("América (Actualidad)")
@@ -1265,35 +1378,18 @@ st.dataframe(totals_by_year, use_container_width=True)
 
 st.markdown("# **Modelo Predictivo**")
 st.markdown("## Utilizando ARIMA:")
-st.markdown("## Paso 1: Vemos si las series son estacionales o no y si son estacionarias o no")
+st.markdown("#### El siguiente modelo estima las emisiones totales incluyendo LULUCF (Uso de la Tierra, Cambio de Uso de la Tierra y Silvicultura) para cada continente. Se utilizan los datos desde 1990 a 2022 para proyectar como van a evolucionar esas emisiones en los proximos años.")
 
-serie_america = df_cleaned[
-    (df_cleaned['Área'] == 'Américas') &
-    (df_cleaned['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
-    (df_cleaned['Código del producto'] == 6825)
-    ]
-serie_asia = df_cleaned[
-    (df_cleaned['Área'] == 'Asia') &
-    (df_cleaned['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
-    (df_cleaned['Código del producto'] == 6825)
-    ]
+serie = df_fao[
+    (df_fao['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
+    (df_fao['Código del producto'] == 6825)
+  ].copy()
 
-serie_europa = df_cleaned[
-    (df_cleaned['Área'] == 'Europa') &
-    (df_cleaned['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
-    (df_cleaned['Código del producto'] == 6825)
-    ]
-serie_oceania = df_cleaned[
-    (df_cleaned['Área'] == 'Oceania') &
-    (df_cleaned['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
-    (df_cleaned['Código del producto'] == 6825)
-    ]
-
-serie_africa = df_cleaned[
-    (df_cleaned['Área'] == 'África') &
-    (df_cleaned['Elemento'] == 'Emisiones (CO2eq) (AR5)') &
-    (df_cleaned['Código del producto'] == 6825)
-    ]
+serie_america = serie[serie['Área'] == 'Américas']
+serie_asia = serie[serie['Área'] == 'Asia']
+serie_europa = serie[serie['Área'] == 'Europa']
+serie_oceania = serie[serie['Área'] == 'Oceanía']
+serie_africa = serie[serie['Área'] == 'África']
 
 st.markdown("### 📊 Curva de emisiones en kilotoneladas a lo largo de los años para los distintos continentes. "
             "Evolución de las emisiones agroalimentarias en cada continente a lo largo del tiempo")
@@ -1330,9 +1426,12 @@ Estos gráficos permiten **visualizar patrones históricos** que sirven como bas
 """)
 
 
-fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-axes = axes.flatten()  # Aplanar para acceder con índice simple
 
+# Crear figura y subplots
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+axes = axes.flatten()
+
+# Graficar cada continente
 sns.lineplot(data=serie_america, x='Año', y='Valor', ax=axes[0])
 axes[0].set_title('América')
 
@@ -1348,11 +1447,74 @@ axes[3].set_title('Oceanía')
 sns.lineplot(data=serie_africa, x='Año', y='Valor', ax=axes[4])
 axes[4].set_title('África')
 
-# Eliminar el sexto subplot (vacío)
+# Eliminar el subplot vacío
 fig.delaxes(axes[5])
 
+# Ajustar diseño y mostrar en Streamlit
 plt.tight_layout()
-st.pyplot(plt)
+st.subheader("📈 Evolución anual de emisiones por continente")
+st.pyplot(fig)
+
+
+st.markdown("""## Análisis de ACF y PACF por continente
+
+En este bloque realizamos un análisis de series temporales sobre las emisiones de CO₂-eq para cada continente, utilizando dos herramientas estadísticas fundamentales:
+
+### 🔁 Función de autocorrelación (ACF)
+- La **ACF (Autocorrelation Function)** mide la correlación de la serie con sus propios retardos (lags).
+- Permite detectar patrones de repetición o dependencia temporal.
+- Si hay autocorrelación significativa en ciertos lags, es señal de que el pasado influye sobre el futuro.
+
+### 📈 Función de autocorrelación parcial (PACF)
+- La **PACF (Partial Autocorrelation Function)** mide la correlación entre una observación y sus lags, **controlando por las correlaciones intermedias**.
+- Es útil para identificar el orden AR (autoregresivo) en modelos ARIMA.
+- Ayuda a decidir cuántos términos autoregresivos incluir (cuántos lags tienen efecto directo).
+
+### ⚠️ Filtro de calidad de datos
+- Si una serie tiene menos de 10 observaciones no nulas, **no se grafica** ACF/PACF por falta de datos para un análisis confiable.
+
+### 📌 Aplicación
+Este análisis se realiza de forma individual para cada continente (América, Asia, Europa, Oceanía y África) y se muestra un gráfico con dos subplots: ACF y PACF con hasta 15 lags.
+
+Esto es fundamental para modelar emisiones futuras, detectar estacionalidad o dependencia, y elegir modelos estadísticos adecuados.
+""")
+series = [
+    ('América', serie_america),
+    ('Asia', serie_asia),
+    ('Europa', serie_europa),
+    ('Oceanía', serie_oceania),
+    ('África', serie_africa)
+]
+
+for (nombre, df) in series:
+    serie = df['Valor'].dropna()
+
+    if len(serie) < 10:
+        st.warning(f"⚠️ Muy pocos datos para mostrar ACF/PACF confiables para **{nombre}**")
+        continue
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+    fig.suptitle(f'ACF y PACF - {nombre}', fontsize=14)
+
+    plot_acf(serie, lags=15, ax=ax[0])
+    plot_pacf(serie, lags=15, ax=ax[1])
+
+    ax[0].set_title('ACF')
+    ax[1].set_title('PACF')
+
+    plt.tight_layout()
+    st.subheader(f"📊 ACF y PACF — {nombre}")
+    st.pyplot(fig)
+
+st.markdown("""Conclusiones:
+
+ACF: mide cuánta memoria tiene la serie. En los gráficos se puede ver que las barras bajan de a poco, esto quiere decir que lo que pasó años anteriores todavía pesa hoy. Es una característica de series no estacionarias.
+
+PACF: muestra las influencias directas. Ejemplo: Cuánto empuja 2019 a 2020 directamente, sin contar con la ayuda de 2018, 2017…? En los gráficos se observa una barra alta en el lag 1 y 2 que luego caen.
+
+""")
+
+
 
 st.markdown("""
 ---
@@ -1441,7 +1603,61 @@ Dado que la **contribución estacional es insignificante**, tratamos las series 
 """)
 
 st.markdown("""### Pruebas de estacionaridad""")
+st.markdown("""# 📉 Prueba ADF (Augmented Dickey-Fuller)
 
+La **prueba ADF (Augmented Dickey-Fuller)** es una prueba estadística fundamental en el análisis de series temporales. Se utiliza para determinar si una serie es **estacionaria**, es decir, si sus propiedades estadísticas (como la media, la varianza y la autocorrelación) **se mantienen constantes en el tiempo**.
+
+---
+
+## 🔍 ¿Por qué es importante la estacionariedad?
+
+Muchos modelos de series temporales —como **ARIMA**, **SARIMA**, etc.— requieren que la serie sea estacionaria para funcionar correctamente. Si una serie no es estacionaria (por ejemplo, tiene una tendencia o estacionalidad no corregida), los modelos pueden producir **predicciones sesgadas o erráticas**.
+
+---
+
+## 📐 Fundamento de la prueba ADF
+
+La prueba ADF es una extensión de la **prueba de Dickey-Fuller**, que incluye **términos adicionales de rezago (lags)** de la variable dependiente para capturar autocorrelación residual y mejorar la robustez del test.
+
+La forma general de la regresión que se estima es:
+
+\[
+\Delta y_t = \alpha + \beta t + \gamma y_{t-1} + \sum_{i=1}^{p} \delta_i \Delta y_{t-i} + \varepsilon_t
+\]
+
+Donde:
+
+- \( y_t \) es la serie original.
+- \( \Delta y_t = y_t - y_{t-1} \) representa la primera diferencia.
+- \( t \) es una tendencia determinista (opcional).
+- \( \gamma \) es el parámetro clave que se analiza.
+- \( \varepsilon_t \) es el error aleatorio.
+- \( p \) es el número de rezagos incluidos.
+
+---
+
+## 🎯 Hipótesis de la prueba ADF
+
+| Hipótesis nula \( H_0 \)            | Hipótesis alternativa \( H_1 \)         |
+|-------------------------------------|-----------------------------------------|
+| La serie tiene una raíz unitaria → no es estacionaria. | La serie es estacionaria (no tiene raíz unitaria). |
+
+---
+
+## 🧪 Interpretación de resultados
+
+- **Si el valor p es menor que un nivel de significancia (por ejemplo, 0.05):**
+  - Se **rechaza la hipótesis nula**.
+  - Concluimos que la serie **es estacionaria**.
+
+- **Si el valor p es mayor que 0.05:**
+  - **No se puede rechazar** la hipótesis nula.
+  - La serie **no es estacionaria**.
+
+También puede compararse el **estadístico ADF** con los **valores críticos** (critical values) al 1%, 5% y 10%.
+
+---
+""")
 st.markdown("### 📉 Test de Estacionariedad ADF por continente")
 
 series_continentales = {
@@ -1513,41 +1729,92 @@ st.dataframe(df_resumen_adf, use_container_width=True)
 st.write("")
 st.write("")
 
-# ────── Supongamos que estas series ya están definidas ──────
-# Asegurate de definirlas antes de correr esta app
-series_continentales = {
-    'América': serie_america['Valor'],
-    'Asia': serie_asia['Valor'],
-    'Europa': serie_europa['Valor'],
-    'Oceanía': serie_oceania['Valor'],
-    'África': serie_africa['Valor'],
-}
+st.markdown("""# 📊 Prueba KPSS (Kwiatkowski–Phillips–Schmidt–Shin)
 
-# ────── Interfaz ──────
-st.title("Test KPSS de Estacionaridad")
-st.write("Análisis de estacionaridad con regresión lineal y término constante")
+La **prueba KPSS** es una herramienta estadística que se utiliza para verificar la **estacionariedad** de una serie temporal. A diferencia de la prueba ADF (Augmented Dickey-Fuller), la prueba KPSS parte de una hipótesis **opuesta**.
 
-alpha = 0.05  # Nivel de significancia
+---
 
-# Botón para iniciar análisis
-if st.button("Ejecutar test KPSS"):
-    for nombre, serie in series_continentales.items():
-        st.subheader(f"{nombre}")
-        serie = serie.dropna()
+## 🧠 ¿Por qué KPSS?
 
-        if len(serie) < 3:
-            st.info("Serie vacía o muy corta, se omite.")
-            continue
+Mientras que la prueba ADF evalúa si una serie tiene **una raíz unitaria** (es decir, si **no es estacionaria**), la prueba KPSS evalúa si la serie es **estacionaria en nivel o tendencia**.
 
-        try:
-            stat, p, lags, crit = kpss(serie, regression='ct')
-            st.write(f"**KPSS stat** = {stat:.3f} | **p** = {p:.3f} | **lags** = {lags}")
-            if p < alpha:
-                st.error("**NO estacionaria** (se rechaza H₀)")
-            else:
-                st.success("Sin evidencia contra la estacionaridad (no se rechaza H₀)")
-        except Exception as e:
-            st.warning(f"Error al procesar {nombre}: {e}")
+---
+
+## ⚖️ Hipótesis de la prueba KPSS
+
+| Hipótesis nula \( H_0 \)                    | Hipótesis alternativa \( H_1 \)                      |
+|---------------------------------------------|------------------------------------------------------|
+| La serie **es estacionaria** (en nivel o tendencia). | La serie **no es estacionaria** (tiene raíz unitaria). |
+
+> ⚠️ ¡Esto es exactamente lo contrario de la prueba ADF!
+
+---
+
+## 📐 Formulación
+
+La prueba se basa en la descomposición de una serie temporal como:
+
+\[
+y_t = r_t + \beta t + \varepsilon_t
+\]
+
+Donde:
+- \( r_t \): componente estacionaria (o aleatoria).
+- \( \beta t \): tendencia determinista.
+- \( \varepsilon_t \): error aleatorio.
+
+Se calcula un estadístico de prueba que mide la varianza acumulada de los residuos de una regresión de \( y_t \) sobre \( t \), y se compara contra valores críticos.
+
+---
+
+## 🧪 Interpretación de resultados
+
+- Si el **p-valor es bajo (p < 0.05)**:
+  - Se **rechaza la hipótesis nula**.
+  - Concluimos que la serie **no es estacionaria**.
+  
+- Si el **p-valor es alto (p ≥ 0.05)**:
+  - **No se rechaza** la hipótesis nula.
+  - Se considera que la serie **es estacionaria**.
+
+""")
+
+st.markdown("### 📉 Test de Estacionariedad KPSS por continente")
+
+
+### ✅ 2. Versión en **Streamlit** del código que ejecuta la prueba KPSS para cada serie continental
+
+alpha = 0.05  # nivel de significancia
+
+for nombre, serie in series_continentales.items():
+    st.subheader(f"🌍 {nombre}")
+
+    serie = serie.dropna()
+
+    if len(serie) < 3:
+        st.warning("⚠️ Serie vacía o muy corta, se omite.")
+        continue
+
+    try:
+        stat, p, lags, crit = kpss(serie, regression='ct')
+        st.write(f"**Estadístico KPSS:** {stat:.3f}")
+        st.write(f"**p-valor:** {p:.3f}")
+        st.write(f"**Número de rezagos:** {lags}")
+
+        if p < alpha:
+            st.error("❌ **NO estacionaria** (se rechaza H₀)")
+        else:
+            st.success("✅ Sin evidencia contra la estacionaridad (no se rechaza H₀)")
+
+        # Mostrar los valores críticos como tabla
+        st.markdown("**Valores críticos:**")
+        st.table(pd.DataFrame(crit.items(), columns=["Nivel", "Valor crítico"]))
+
+    except Exception as e:
+        st.warning(f"⚠️ Error al procesar {nombre}: {e}")
+
+
 
 st.markdown("""### Resultados de las Pruebas de Estacionariedad:
 
@@ -1558,145 +1825,26 @@ st.markdown("""### Resultados de las Pruebas de Estacionariedad:
 - África: ADF concluye que la serie no es estacionaria y KPSS no tiene evidencia contra la estacionariedad. Tratamiento: primera diferenciación.""")
 
 st.markdown("### 🔍 Estacionariedad y diferenciación para modelado ARIMA")
+st.markdown("""## 📉 Diferenciación
 
-series_continentales = {
-    'América': serie_america,
-    'Asia': serie_asia,
-    'Europa': serie_europa,
-    'Oceanía': serie_oceania,
-    'África': serie_africa,
-}
+### ¿Para qué sirve?
 
+La **diferenciación** es la operación más sencilla y común para "arreglar" una serie temporal que **no es estacionaria**.
 
-def test_adf(serie):
-    result = adfuller(serie.dropna())
-    adf_stat, p_value, _, _, critical_values, _ = result
-    return adf_stat, p_value, critical_values
+Consiste en restar cada valor de la serie con su valor inmediatamente anterior:
 
+\[
+\Delta y_t = y_t - y_{t-1}
+\]
 
-# Resultados para tabla
-resultados_adf = []
+Esta operación elimina tendencias lineales o estructuras de crecimiento acumulativo, haciendo que la serie tenga **media y varianza más estables en el tiempo**.
 
-for nombre, df in series_continentales.items():
-    st.markdown(f"#### 🌎 {nombre}")
-
-    if 'Valor' not in df or df['Valor'].dropna().size < 3:
-        st.warning("⚠️ Serie vacía o con muy pocos datos.")
-        resultados_adf.append({
-            "Región": nombre,
-            "ADF original": "–",
-            "p-value original": "–",
-            "Estacionaria original": "No evaluada",
-            "ADF diferenciada": "–",
-            "p-value diferenciada": "–",
-            "Estacionaria diferenciada": "No evaluada",
-            "Diferencias necesarias (d)": "–"
-        })
-        continue
-
-    serie = df['Valor'].dropna()
-
-    # ADF original
-    adf_stat_orig, pval_orig, _ = test_adf(serie)
-    estacionaria_orig = "Sí" if pval_orig < 0.05 else "No"
-
-    st.markdown(f"- ADF original: `{adf_stat_orig:.4f}`, p-value: `{pval_orig:.4f}`")
-    st.markdown(f"→ ¿Es estacionaria? **{'✅ Sí' if pval_orig < 0.05 else '🚫 No'}**")
-
-    # Si es estacionaria, no se diferencia
-    if pval_orig < 0.05:
-        resultados_adf.append({
-            "Región": nombre,
-            "ADF original": round(adf_stat_orig, 4),
-            "p-value original": round(pval_orig, 4),
-            "Estacionaria original": "Sí",
-            "ADF diferenciada": "–",
-            "p-value diferenciada": "–",
-            "Estacionaria diferenciada": "–",
-            "Diferencias necesarias (d)": 0
-        })
-        continue
-
-    # Diferenciar y volver a testear
-    df['Valor_diff'] = df['Valor'].diff()
-    serie_diff = df['Valor_diff'].dropna()
-
-    if serie_diff.size < 3:
-        st.warning("⚠️ No hay suficientes datos tras diferenciar.")
-        resultados_adf.append({
-            "Región": nombre,
-            "ADF original": round(adf_stat_orig, 4),
-            "p-value original": round(pval_orig, 4),
-            "Estacionaria original": "No",
-            "ADF diferenciada": "–",
-            "p-value diferenciada": "–",
-            "Estacionaria diferenciada": "No evaluada",
-            "Diferencias necesarias (d)": "?"
-        })
-        continue
-
-    adf_stat_diff, pval_diff, _ = test_adf(serie_diff)
-    estacionaria_diff = "Sí" if pval_diff < 0.05 else "No"
-
-    st.markdown(f"- ADF diferenciada: `{adf_stat_diff:.4f}`, p-value: `{pval_diff:.4f}`")
-    st.markdown(f"→ ¿Es estacionaria tras diferenciar? **{'✅ Sí' if pval_diff < 0.05 else '🚫 No'}**")
-
-    resultados_adf.append({
-        "Región": nombre,
-        "ADF original": round(adf_stat_orig, 4),
-        "p-value original": round(pval_orig, 4),
-        "Estacionaria original": "No",
-        "ADF diferenciada": round(adf_stat_diff, 4),
-        "p-value diferenciada": round(pval_diff, 4),
-        "Estacionaria diferenciada": estacionaria_diff,
-        "Diferencias necesarias (d)": 1 if pval_diff < 0.05 else "≥2"
-    })
-
-# Mostrar tabla resumen
-st.markdown("### 📋 Resumen de diferenciación requerida para ARIMA")
-df_adf_resumen = pd.DataFrame(resultados_adf)
-st.dataframe(df_adf_resumen, use_container_width=True)
-
-st.markdown("""
----
-
-### 🧠 ¿Por qué se realiza esta prueba?
-
-Antes de aplicar un modelo ARIMA, es necesario trabajar con series **estacionarias**, es decir, series cuya media y varianza se mantienen constantes en el tiempo.
-
-El **test de Dickey-Fuller aumentado (ADF)** permite verificar si una serie:
-
-- 🔹 **Ya es estacionaria** → se puede modelar directamente (ARIMA con `d = 0`).
-- 🔹 **No es estacionaria** → requiere ser **diferenciada** (restar cada valor con el anterior) para eliminar tendencia.
-
----
-
-### ⚙️ ¿Qué significa diferenciar una serie?
-
-Diferenciar una serie es transformar los valores absolutos en **cambios entre periodos consecutivos**. Esto permite:
-
-- Eliminar la tendencia creciente o decreciente.
-- Hacer que la serie fluctúe alrededor de una media constante.
-- Lograr que el test ADF detecte estacionariedad en la nueva serie.
-
----
-
-### 📌 Conclusión
-
-Con esta prueba determinamos el parámetro `d` que cada serie necesita en el modelo ARIMA.  
-Si una serie no se vuelve estacionaria ni con la primera diferencia (`d = 1`), puede requerir transformaciones adicionales (`d ≥ 2`) o un enfoque diferente como modelado no lineal.
+Es una herramienta clave en el modelado con ARIMA, donde el parámetro \( d \) indica cuántas veces se debe diferenciar la serie para volverla estacionaria.
 """)
-st.markdown("""## Paso 2:  Diferenciamos las series hasta llegar a que éstas sean series estacionarias""")
 
+alpha = 0.05  # Nivel de significancia
 
-# Esto elimina la tendencia de la serie original.
-# Es como decir: en lugar de analizar los valores absolutos, analizo cuánto cambia de un punto al siguiente.
-# Al tomar las diferencias:
-# Se quita el crecimiento o caída sostenida.
-# La serie resultante fluctúa alrededor de una media constante.
-# El p-value de adfuller() baja, y entonces la serie diferenciada es estacionaria.
-
-# ────── Diccionario de series diferenciadas ──────
+# Diccionario de series por continente
 differenced_series = {
     'América': serie_america,
     'Asia': serie_asia,
@@ -1705,74 +1853,330 @@ differenced_series = {
     'África': serie_africa,
 }
 
-alpha = 0.05  # Nivel de significación para KPSS
+# Lista para resumen final
+resultados_adf_kpss = []
 
-# ────── Análisis por región ──────
+# Función auxiliar
+def test_adf(serie):
+    result = adfuller(serie.dropna())
+    adf_stat, p_value, _, _, critical_values, _ = result
+    return adf_stat, p_value, critical_values
+
 for nombre, df in differenced_series.items():
-    st.subheader(f"🌍 {nombre}")
+    st.markdown(f"#### 🌍 {nombre}")
 
-    df = df.copy()  # Evitar modificar el original si se reutiliza
+    df = df.copy()
     df['Valor_diff'] = df['Valor'].diff()
-    df.dropna(inplace=True)
+    df.dropna(subset=['Valor_diff'], inplace=True)
+    serie_diff = df['Valor_diff']
 
-    if df['Valor_diff'].dropna().size < 3:
+    if serie_diff.size < 3:
         st.warning("⚠️ No hay suficientes datos para testear la serie diferenciada.")
+        resultados_adf_kpss.append({
+            "Región": nombre,
+            "ADF diferenciada": "–",
+            "p-valor ADF": "–",
+            "Estacionaria ADF": "No evaluada",
+            "KPSS diferenciada": "–",
+            "p-valor KPSS": "–",
+            "Estacionaria KPSS": "No evaluada",
+        })
         continue
 
+    # --- ADF ---
+    adf_stat, pval_adf, crit_adf = test_adf(serie_diff)
+    est_adf = "Sí" if pval_adf < alpha else "No"
+    st.markdown(f"- **ADF:** estadístico = `{adf_stat:.4f}`, p-valor = `{pval_adf:.4f}` → Estacionaria: **{'✅ Sí' if est_adf == 'Sí' else '🚫 No'}**")
+
+    # --- KPSS ---
     try:
-        # Test de ADF
-        result = adfuller(df['Valor_diff'])
-        st.write(f"**ADF Statistic**: {result[0]:.4f}")
-        st.write(f"**p-value**: {result[1]:.4f}")
-        for key, value in result[4].items():
-            st.write(f"Critical Value ({key}): {value:.4f}")
-        if result[1] < 0.05:
-            st.success("✅ La serie **es estacionaria** (rechaza H₀ del ADF)")
-        else:
-            st.info("ℹ️ La serie **NO es estacionaria** (no rechaza H₀ del ADF)")
-
-        st.markdown("---")
-
-        # Test de KPSS
-        stat, p, lags, crit = kpss(df['Valor_diff'], regression='ct')
-        st.write(f"**KPSS Statistic**: {stat:.4f}")
-        st.write(f"**p-value**: {p:.4f}")
-        st.write(f"**Lags utilizados**: {lags}")
-        if p < alpha:
-            st.error("❌ La serie **NO es estacionaria** (se rechaza H₀ del KPSS)")
-        else:
-            st.success("✅ Sin evidencia contra la estacionaridad (no se rechaza H₀ del KPSS)")
-
+        kpss_stat, pval_kpss, lags_kpss, crit_kpss = kpss(serie_diff, regression='ct')
+        est_kpss = "No" if pval_kpss < alpha else "Sí"
+        st.markdown(f"- **KPSS:** estadístico = `{kpss_stat:.4f}`, p-valor = `{pval_kpss:.4f}` → Estacionaria: **{'✅ Sí' if est_kpss == 'Sí' else '🚫 No'}**")
     except Exception as e:
-        st.error(f"❗ Error al procesar {nombre}: {e}")
+        st.warning(f"⚠️ Error en prueba KPSS para {nombre}: {e}")
+        kpss_stat = pval_kpss = est_kpss = "–"
 
-# ────── Conclusiones generales ──────
-st.markdown("""---  
-### 📌 Conclusiones generales sobre las series diferenciadas:
+    # Guardar en resumen
+    resultados_adf_kpss.append({
+        "Región": nombre,
+        "ADF diferenciada": round(adf_stat, 4),
+        "p-valor ADF": round(pval_adf, 4),
+        "Estacionaria ADF": est_adf,
+        "KPSS diferenciada": round(kpss_stat, 4) if isinstance(kpss_stat, float) else kpss_stat,
+        "p-valor KPSS": round(pval_kpss, 4) if isinstance(pval_kpss, float) else pval_kpss,
+        "Estacionaria KPSS": est_kpss
+    })
 
-- **América**: ambos test concuerdan. Serie estacionaria.  
-- **Asia**: resultado mixto. ADF afirma que es estacionaria; KPSS indica lo contrario.  
-- **Europa**: ambos test coinciden. Serie estacionaria.  
-- **Oceanía**: ambos test coinciden. Serie estacionaria.  
-- **África**: ambos test coinciden. Serie estacionaria.  
+# --- Mostrar resumen final ---
+st.markdown("### 📋 Resumen de pruebas ADF y KPSS sobre la serie diferenciada")
+df_diff_resumen = pd.DataFrame(resultados_adf_kpss)
+st.dataframe(df_diff_resumen, use_container_width=True)
+
+
+
+
+st.markdown("""
+---
+## 📌 Conclusiones luego de testear la estacionariedad en las series diferenciadas
+
+- **América:** ambos tests concuerdan. Serie **estacionaria**.
+- **Asia:** resultado **mixto**. ADF afirma que es estacionaria, mientras KPSS indica que **no lo es**.
+- **Europa:** los tests coinciden. Serie **estacionaria**.
+- **Oceanía:** los tests coinciden. Serie **estacionaria**.
+- **África:** los tests coinciden. Serie **estacionaria**.
+
+---
+
+## ⚙️ Tratamientos propuestos
+
+Se modelará cada serie con una **primera diferenciación** (`d=1`). Luego, se evaluará el comportamiento de los **residuos del modelo**:
+
+- Si los residuos se comportan como **ruido blanco** (sin autocorrelación),
+- entonces se considerará que la elección de `d=1` fue **adecuada**,
+- **independientemente** de que un test (ADF o KPSS) aislado sugiera lo contrario.
+""")
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+axes = axes.flatten()
+
+series_diff = [
+    ('América', serie_america),
+    ('Asia', serie_asia),
+    ('Europa', serie_europa),
+    ('Oceanía', serie_oceania),
+    ('África', serie_africa),
+]
+
+for i, (nombre, df) in enumerate(series_diff):
+    df = df.sort_values('Año')  # <-- Asegura que el eje X esté bien ordenado
+
+    if 'Valor_diff' in df and df['Valor_diff'].dropna().size >= 3:
+        sns.lineplot(x=df['Año'], y=df['Valor_diff'], ax=axes[i])
+        axes[i].set_title(f'{nombre} - Valor diferenciado')
+        axes[i].set_ylabel('Δ Valor')
+    elif 'Valor' in df and df['Valor'].dropna().size >= 3:
+        sns.lineplot(x=df['Año'], y=df['Valor'], ax=axes[i])
+        axes[i].set_title(f'{nombre} - Serie original (estacionaria)')
+        axes[i].set_ylabel('Valor')
+    else:
+        axes[i].set_title(f'{nombre} - Sin datos')
+        axes[i].axis('off')
+
+    axes[i].set_xlabel('Año')
+
+fig.delaxes(axes[5])
+plt.tight_layout()
+st.subheader("📉 Visualización de series diferenciadas u originales por continente")
+st.pyplot(fig)
+
+st.markdown("""## 📊 ACF y PACF en series temporales
+
+### 🔄 ¿Qué es la ACF (Autocorrelation Function)?
+
+La **Función de Autocorrelación (ACF)** mide la correlación lineal entre una serie temporal y **sus propios rezagos** (valores pasados).
+
+- **ACF(k)** indica cuánto se correlaciona la serie consigo misma desplazada `k` pasos.
+- Se representa con un gráfico que muestra los coeficientes de correlación para distintos rezagos.
+- Incluye tanto los efectos **directos como indirectos** (es decir, puede verse afectada por rezagos intermedios).
+
+#### 📌 ¿Para qué se usa?
+
+- Para identificar la presencia de **dependencia temporal**.
+- Para ayudar a definir el orden `q` en modelos **ARIMA** (componente MA: media móvil).
+- Para detectar patrones de estacionalidad o ciclos.
+
+---
+
+### 🔁 ¿Qué es la PACF (Partial Autocorrelation Function)?
+
+La **Función de Autocorrelación Parcial (PACF)** mide la correlación entre la serie y sus rezagos, **controlando los efectos de los rezagos intermedios**.
+
+- PACF(k) muestra la relación entre `X_t` y `X_{t-k}` *una vez eliminada* la influencia de los rezagos `1` hasta `k-1`.
+- Aísla la contribución directa de cada rezago.
+
+#### 📌 ¿Para qué se usa?
+
+- Para estimar el orden `p` en un modelo **ARIMA** (componente AR: autorregresivo).
+- Permite entender **cuál es el número mínimo de rezagos necesarios** para explicar la dependencia.
+
+---
+
+### 📈 ¿Cómo se interpretan los gráficos?
+
+Ambas funciones se grafican con líneas verticales por cada rezago, junto a un intervalo de confianza (por ejemplo, 95%).
+
+- Si un valor **supera el límite de confianza**, se considera **estadísticamente significativo**.
+- Una **caída brusca** en ACF o PACF sugiere el orden adecuado para `q` o `p` respectivamente.
+
+---
+
+### 🧠 En resumen
+
+| Función | Evalúa...                        | Ayuda a definir... | Considera efectos indirectos |
+|---------|----------------------------------|---------------------|------------------------------|
+| **ACF** | Correlación con rezagos          | `q` en ARIMA        | ✅ Sí                         |
+| **PACF**| Correlación parcial (solo directa)| `p` en ARIMA        | ❌ No                         |
 """)
 
-st.markdown("""# Paso 3: Se dividen las series:
-   * una parte para entrenamiento (train)
-   * otra parte para testing (test)""")
+# 1. Diferenciar primero
+for nombre, df in series_diff:
+    if 'Valor' in df and 'Valor_diff' not in df:
+        df['Valor_diff'] = df['Valor'].diff()
+        df.dropna(inplace=True)
+
+# 2. Luego graficar
+for nombre, df in series_diff:
+    st.markdown(f"### 🌎 {nombre}")
+
+    if 'Valor_diff' not in df:
+        st.warning("⚠️ No tiene columna `Valor_diff`, se omite.")
+        continue
+
+    serie = df['Valor_diff'].dropna()
+
+    if len(serie) < 10:
+        st.warning("⚠️ Muy pocos datos para mostrar ACF/PACF confiables.")
+        continue
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+    fig.suptitle(f'ACF y PACF - {nombre} (Valor diferenciado)', fontsize=14)
+
+    plot_acf(serie, lags=15, ax=ax[0])
+    plot_pacf(serie, lags=15, ax=ax[1])
+
+    ax[0].set_title('ACF')
+    ax[1].set_title('PACF')
+
+    st.pyplot(fig)
 
 
 
-# ────── Función para dividir en entrenamiento y prueba ──────
-def split_train_test(df, col='Valor', frac_train=0.8):
-    s = df[col].astype(float)
-    n_train = int(len(s) * frac_train)
-    train = s.iloc[:n_train].copy()
-    test  = s.iloc[n_train:].copy()
-    return train, test
 
-# ────── Diccionario de series por continente ──────
+st.markdown("""## ✅ Estacionariedad lograda con primera diferencia
+
+La **primera diferencia** logró que las series sean estacionarias:
+
+- Las **colas largas** en la función de autocorrelación (ACF) desaparecieron.
+- La mayoría de las barras están dentro de la **franja de confianza**.
+- Todas las series cumplen con el requisito de **varianza y media constantes**.
+
+Por lo tanto, ya podemos aplicar un modelo **ARIMA** a cada una.
+
+---
+
+## 🔍 Selección del mejor modelo ARIMA
+
+Luego de lograr la estacionariedad, vamos a buscar el **mejor modelo ARIMA** para cada serie.
+
+El siguiente procedimiento permite comparar múltiples modelos con:
+
+- `d = 1` (primera diferencia fija),
+- `p` y `q` variando entre 0 y 3.
+
+Se presentan los **3 mejores modelos** según:
+
+1. **Precisión** del pronóstico (*MAPE*),
+2. **Simplicidad** del modelo (*AIC*),
+3. **Validez estadística** del ajuste (residuos como **ruido blanco**).
+""")
+
+
+# Ignorar warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=ValueWarning)
+warnings.filterwarnings("ignore")
+
+# Diccionario de series originales (ya diferenciadas previamente si corresponde)
 series = {
+    'América': serie_america['Valor'].astype(float),
+    'Asia':    serie_asia['Valor'].astype(float),
+    'Europa':  serie_europa['Valor'].astype(float),
+    'Oceanía': serie_oceania['Valor'].astype(float),
+    'África':  serie_africa['Valor'].astype(float)
+}
+
+# Hiperparámetros de test y diferenciación
+h_test = 5
+d = 1
+
+# Función para buscar los mejores modelos ARIMA
+def grid_search_arima(y_train, y_test, p_max=3, q_max=3, top_k=3, lb_lags=10):
+    resultados = []
+    for p, q in itertools.product(range(p_max + 1), range(q_max + 1)):
+        try:
+            modelo = SARIMAX(y_train, order=(p, d, q),
+                             enforce_stationarity=False,
+                             enforce_invertibility=False).fit(disp=False)
+
+            forecast = modelo.get_forecast(steps=len(y_test)).predicted_mean
+            mape = mean_absolute_percentage_error(y_test, forecast) * 100
+
+            lb_p = acorr_ljungbox(modelo.resid, lags=[lb_lags],
+                                  return_df=True)['lb_pvalue'].iloc[-1]
+
+            resultados.append({
+                'order': (p, d, q),
+                'aic': modelo.aic,
+                'mape': mape,
+                'lb_p': lb_p,
+                'ok': lb_p > 0.05,
+                'mod': modelo
+            })
+        except Exception:
+            continue
+
+    resultados = sorted(resultados, key=lambda x: (x['mape'], x['aic']))
+    return resultados[:top_k]
+
+# Título principal en Streamlit
+st.title("📊 Comparación de modelos ARIMA")
+
+# Loop sobre todas las series
+resultados = {}
+for nombre, serie in series.items():
+    st.markdown(f"## 🌎 {nombre}")
+
+    y_train, y_test = serie.iloc[:-h_test], serie.iloc[-h_test:]
+    top_modelos = grid_search_arima(y_train, y_test)
+
+    resultados[nombre] = top_modelos
+
+    for i, modelo in enumerate(top_modelos, 1):
+        st.markdown(f"""
+        **{i}. ARIMA{modelo['order']}**  
+        • 📉 AIC = `{modelo['aic']:.2f}`  
+        • 🎯 MAPE (test) = `{modelo['mape']:.2f}%`  
+        • 🧪 Ljung‑Box p-valor = `{modelo['lb_p']:.3f}` → {'✅ OK' if modelo['ok'] else '❌ NO'}
+        """)
+st.markdown("""Se exploraron modelos **ARIMA (p,1,q)** con `p` y `q` entre 0 y 3.  
+Para cada continente se muestran los **3 modelos con menor error de pronóstico** sin sobreajustar la serie (medido mediante el **AIC**).  
+Además, se evaluó que los residuales **no presenten autocorrelación** mediante el test de **Ljung-Box**.
+
+##### 📌 Modelos Seleccionados:
+
+- **América**: ARIMA(0,1,3)  
+- **Asia**: ARIMA(1,1,1)  
+- **Europa**: ARIMA(1,1,3)  
+- **Oceanía**: ARIMA(2,1,3)  
+- **África**: ARIMA(2,1,3)
+""")
+
+import streamlit as st
+import matplotlib.pyplot as plt
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+# Parámetros por continente
+parametros_arima = {
+    'América': (0, 1, 3),
+    'Asia': (1, 1, 1),
+    'Europa': (1, 1, 3),
+    'Oceanía': (2, 1, 3),
+    'África': (2, 1, 3)
+}
+
+# Series de tiempo
+series_dict = {
     'América': serie_america,
     'Asia': serie_asia,
     'Europa': serie_europa,
@@ -1780,969 +2184,167 @@ series = {
     'África': serie_africa
 }
 
-# ────── Generación de splits ──────
-splits = {nombre: split_train_test(df) for nombre, df in series.items()}
+h_test = 5
 
-# ────── Mostrar tamaños en Streamlit ──────
-st.markdown("## 📊 División de las series en entrenamiento y prueba")
-
-for nombre, (train, test) in splits.items():
+for nombre, df in series_dict.items():
     st.markdown(f"### 🌍 {nombre}")
-    st.write(f"🔹 Tamaño **train**: {len(train)}")
-    st.write(f"🔹 Tamaño **test**: {len(test)}")
-    st.markdown("---")
 
-# ────── (Opcional) Acceso individual por variable ──────
-train_america, test_america   = splits['América']
-train_asia, test_asia         = splits['Asia']
-train_europa, test_europa     = splits['Europa']
-train_oceania, test_oceania   = splits['Oceanía']
-train_africa, test_africa     = splits['África']
+    if 'Valor' not in df.columns:
+        st.warning("⚠️ No tiene columna `Valor`, se omite.")
+        continue
 
+    y = df['Valor'].dropna()
+    y_train, y_test = y.iloc[:-h_test], y.iloc[-h_test:]
 
-# ────── Texto explicativo ──────
-st.markdown("""
-## 📈 Visualización de series `train/test` por región
-
-En los siguientes gráficos se muestra cómo se dividió cada serie temporal en dos subconjuntos:
-
-- **Train**: datos usados para entrenar el modelo.
-- **Test**: datos reservados para evaluar su desempeño.
-
-Esto permite realizar validaciones más confiables al predecir valores no vistos durante el entrenamiento.
-""")
-
-# ────── Crear figura en grilla 2x3 ──────
-fig, axes = plt.subplots(2, 3, figsize=(15, 8))
-axes = axes.flatten()
-
-# Lista de series
-series_train_test = [
-    ('América', train_america, test_america),
-    ('Asia', train_asia, test_asia),
-    ('Europa', train_europa, test_europa),
-    ('Oceanía', train_oceania, test_oceania),
-    ('África', train_africa, test_africa)
-]
-
-# Graficar cada serie
-for idx, (nombre, train, test) in enumerate(series_train_test):
-    axes[idx].plot(train.index, train.values, label='Train')
-    axes[idx].plot(test.index, test.values, label='Test')
-    axes[idx].set_title(nombre)
-    axes[idx].legend()
-    axes[idx].tick_params(axis='x', rotation=45)
-
-# Desactivar subplot vacío si sobra espacio
-if len(series_train_test) < len(axes):
-    for i in range(len(series_train_test), len(axes)):
-        axes[i].axis('off')
-
-plt.tight_layout()
-
-# Mostrar figura en Streamlit
-st.pyplot(fig)
-
-st.markdown("""# Paso 4: Calculamos ACF y PACF sobre las series de entrenamiento diferenciadas""")
-
-
-# ────── Diccionarios para series originales y diferenciadas ──────
-train_series = {nombre: train for nombre, (train, _) in splits.items()}
-train_diff = {}
-
-st.markdown("## 🧪 Evaluación de estacionariedad en conjuntos de entrenamiento")
-st.markdown("""
-A continuación se aplica el **test de Dickey-Fuller aumentado (ADF)** sobre las series de entrenamiento.
-Si la serie ya es estacionaria (`p < 0.05`), se conserva tal cual. Si no lo es, se diferencia una vez.
-""")
-
-# ────── Procesar cada región ──────
-for nombre, train in train_series.items():
-    train = train.dropna()
-
-    if len(train) < 3:
-        st.warning(f"⚠️ {nombre}: la serie de entrenamiento está vacía o no tiene suficientes datos para aplicar ADF.")
+    if len(y_train) < 10:
+        st.warning("⚠️ Muy pocos datos para ajustar el modelo.")
         continue
 
     try:
-        r = adfuller(train)
-        p = r[1]
-
-        if p < 0.05:
-            train_diff[nombre] = train.astype(float)
-            st.markdown(f"### 🌍 {nombre}")
-            st.success(f"La serie **ya es estacionaria** (`p = {p:.4f}`), se conserva sin diferenciar.")
-        else:
-            diff = train.diff().dropna()
-
-            if len(diff) < 3:
-                st.warning(f"⚠️ {nombre}: la serie diferenciada tampoco tiene suficientes datos para aplicar ADF.")
-                continue
-
-            train_diff[nombre] = diff
-            r2 = adfuller(diff)
-            p2 = r2[1]
-
-            st.markdown(f"### 🌍 {nombre} (1ª diferencia)")
-            st.write(f"**ADF Statistic**: {r2[0]:.4f}")
-            st.write(f"**p-value**: {p2:.4f}")
-            if p2 < 0.05:
-                st.success("✅ La serie diferenciada **es estacionaria** (`p < 0.05`)")
-            else:
-                st.error("❌ La serie diferenciada **NO es estacionaria** (`p ≥ 0.05`)")
-        st.markdown("---")
-
-    except Exception as e:
-        st.error(f"❗ Error en {nombre}: {e}")
-
-
-
-st.markdown("""### Graficar ACF y PACF de las series train_diff (América, Asia, Europa, Oceanía y África)""")
-
-
-# ────── Texto explicativo previo ──────
-st.markdown("""
-## 🔍 Análisis gráfico ACF y PACF por región
-
-Los siguientes gráficos muestran la función de autocorrelación (ACF) y autocorrelación parcial (PACF) de cada serie diferenciada por región, lo que permite identificar los componentes del modelo ARIMA:  
-
-- **AR (p)**: indicado por la PACF (Partial Autocorrelation Function)  
-- **MA (q)**: indicado por la ACF (Autocorrelation Function)  
-- **d**: ya fue aplicada (diferenciación), por lo tanto es 1 en la mayoría de los casos.
-""")
-
-# ────── Nombres de regiones ──────
-regiones = list(train_diff.keys())
-
-# ────── Crear figura con grilla 2x5 ──────
-fig, axes = plt.subplots(2, 5, figsize=(20, 8))
-axes = axes.flatten()
-
-# ────── Graficar ACF y PACF para cada región ──────
-for i, nombre in enumerate(regiones):
-    serie = train_diff[nombre]
-
-    # ACF en primera fila
-    plot_acf(serie, lags=15, ax=axes[i], title=f"ACF - {nombre}")
-
-    # PACF en segunda fila
-    plot_pacf(serie, lags=11, ax=axes[i + 5], method='ywm', title=f"PACF - {nombre}")
-
-# ────── Ajustar diseño y mostrar ──────
-plt.tight_layout()
-st.pyplot(fig)
-st.markdown("""
----  
-## 📘 Regla de Box-Jenkins: interpretación ACF/PACF
-
-La metodología **Box-Jenkins** permite identificar modelos **ARIMA** óptimos a partir del comportamiento de ACF y PACF.
-
-### 🧠 Guía rápida:
-
-| ACF                    | PACF                 | Modelo sugerido  |
-|------------------------|----------------------|------------------|
-| Corte brusco           | Caída lenta          | **MA(q)**        |
-| Caída lenta            | Corte brusco         | **AR(p)**        |
-| Caída lenta en ambos   | Sin corte definido   | **ARMA(p,q)**    |
-
----
-
-### 🔬 Análisis por región
-
-#### 1. América
-- ACF: corte leve en lag 2, luego se estabiliza.  
-- PACF: corte claro en lag 2.  
-✅ **Modelo sugerido**: `ARIMA(2,1,0)`
-
----
-
-#### 2. Asia
-- ACF: baja rápido y se estabiliza.  
-- PACF: corte en lag 2 o 3.  
-✅ **Modelo sugerido**: `ARIMA(2,1,0)`
-
----
-
-#### 3. Europa
-- ACF: todos los valores dentro de la banda ⇒ ruido blanco.  
-- PACF: igual.  
-✅ **Modelo sugerido**: `ARIMA(0,0,0)`
-
----
-
-#### 4. Oceanía
-- ACF: autocorrelación persistente hasta lag 6–7.  
-- PACF: caída clara en lag 1.  
-✅ **Modelo sugerido**: `ARIMA(0,1,1)`
-
----
-
-#### 5. África
-- ACF: caída lenta, sin corte definido.  
-- PACF: posible corte en lag 2.  
-✅ **Modelo sugerido**: `ARIMA(1,1,1)`
-
----
-
-### 📊 Resumen por región
-
-| Región      | ACF                    | PACF                | d | Modelo ARIMA (p,d,q) | Justificación                                                        |
-|-------------|------------------------|----------------------|---|----------------------|----------------------------------------------------------------------|
-| **América** | Suave, sin corte claro | Corte en lag 2       | 1 | **ARIMA(2,1,0)**     | PACF indica AR(2), ACF decae lento                                   |
-| **Asia**    | Suave y ruido blanco   | Corte en lag 2       | 1 | **ARIMA(2,1,0)**     | PACF muestra 2 lags fuertes, ACF sin estructura                      |
-| **Europa**  | Sin estructura         | Sin estructura       | 0 | **ARIMA(0,0,0)**     | Ruido blanco, no necesita AR ni MA                                  |
-| **Oceanía** | Persistente            | Corte en lag 1       | 1 | **ARIMA(0,1,1)**     | ACF cae lento ⇒ MA(1), PACF se corta rápido                         |
-| **África**  | Decae lentamente       | Corte leve en lag 2  | 1 | **ARIMA(1,1,1)**     | ACF y PACF sugieren combinación ARMA                                 |
-""")
-
-st.markdown("""### Para asegurar un modelo eficiente para cada **Continente/Región**, implementamos un código que determine cuáles componentes **ARIMA** son los mejores a emplear, según el **índice AIC más bajo** que se obtenga.""")
-
-
-
-# ────── Ignorar warnings ──────
-warnings.filterwarnings("ignore")
-
-# ────── 1) Configuración de series ──────
-train_series = {nombre: train for nombre, (train, _) in splits.items()}
-
-# d por región: Europa ya es estacionaria (d = 0), el resto no
-d_map = {k: ([0] if k == 'Europa' else [1]) for k in train_series.keys()}
-
-st.markdown("## 🔍 Búsqueda de modelos ARIMA óptimos por región")
-st.markdown("Se seleccionan los mejores modelos según el criterio AIC (y BIC como referencia).")
-
-# ────── 2) Búsqueda de mejores (p,d,q) ──────
-def grid_search_arima(y, d_values, p_max=3, q_max=3, top_k=3):
-    cand = []
-    for d in d_values:
-        for p, q in itertools.product(range(p_max + 1), range(q_max + 1)):
-            try:
-                res = SARIMAX(
-                    y, order=(p, d, q),
-                    enforce_stationarity=False,
-                    enforce_invertibility=False
-                ).fit(disp=False)
-                cand.append({
-                    'order': (p, d, q),
-                    'aic': res.aic,
-                    'bic': res.bic,
-                    'model': res
-                })
-            except Exception as e:
-                st.warning(f"⚠️ {y.name if hasattr(y, 'name') else 'Serie'} - Error en ARIMA({p},{d},{q}): {e}")
-    cand = sorted(cand, key=lambda x: x['aic'])
-    return cand[:top_k]
-
-
-# Parámetros para la búsqueda
-p_max, q_max = 3, 3
-top_k = 3
-resultados = {}
-
-# Ejecutar búsqueda por región
-for nombre, y in train_series.items():
-    top = grid_search_arima(y.astype(float), d_map[nombre], p_max, q_max, top_k)
-    resultados[nombre] = top
-
-# Inyectar manualmente modelo de Oceanía si está ausente o vacío
-if 'Oceanía' not in resultados or not resultados['Oceanía']:
-    st.warning("⚠️ Oceanía no tiene modelos válidos. Se forzará ARIMA(2,1,3).")
-
-    try:
-        # Usar directamente la serie original
-        y_oceania = serie_oceania['Valor'].dropna().astype(float)
-
-        if len(y_oceania) < 5:
-            st.warning("⚠️ Oceanía tiene muy pocos datos, el modelo puede ser inestable.")
-            st.markdown(f"### ℹ️ Oceanía tiene {len(y_oceania)} registros no nulos.")
-            st.line_chart(y_oceania)
-
-
-        else:
-            modelo_oceania = SARIMAX(
-                y_oceania,
-                order=(2, 1, 3),
-                enforce_stationarity=False,
-                enforce_invertibility=False
-            ).fit(disp=False)
-
-            resultados['Oceanía'] = [{
-                'order': (2, 1, 3),
-                'aic': modelo_oceania.aic,
-                'bic': modelo_oceania.bic,
-                'model': modelo_oceania
-            }]
-
-            st.success("✅ Modelo ARIMA(2,1,3) para Oceanía agregado exitosamente.")
-    except Exception as e:
-        st.error(f"❌ Falló la creación del modelo para Oceanía: {e}")
-
-# ────── Mostrar tabla de resultados ──────
-rows = []
-for nombre, lst in resultados.items():
-    for rank, item in enumerate(lst, 1):
-        rows.append({
-            'Región': nombre,
-            'Ranking': rank,
-            'Orden (p,d,q)': item['order'],
-            'AIC': round(item['aic'], 2),
-            'BIC': round(item['bic'], 2)
-        })
-
-tabla = pd.DataFrame(rows).sort_values(['Región', 'Ranking'])
-
-st.markdown("### 📊 Top 3 modelos por región")
-st.dataframe(tabla, use_container_width=True)
-
-# ────── Mostrar el mejor modelo por región ──────
-st.markdown("### 🏆 Mejores modelos por AIC")
-for nombre, lst in resultados.items():
-    if lst:
-        item = lst[0]
-        orden = item['order']
-        aic = item['aic']
-        bic = item['bic']
-        st.write(f"🌍 **{nombre}** → ARIMA{orden} | AIC = {aic:.2f} | BIC = {bic:.2f}")
-
-
-st.markdown("""## Mejores modelos ARIMA por región (según AIC)
-
-- **América**: ARIMA(2, 1, 3)  
-- **Asia**: ARIMA(3, 1, 3)  
-- **Europa**: ARIMA(1, 0, 3)  
-- **Oceanía**: ARIMA(2, 1, 3)  
-- **África**: ARIMA(0, 1, 3)
-
---- """)
-
-st.markdown("""# Paso 5: Construcción del modelo""")
-
-st.markdown("""## Proceso implementado
-Anteriormente se desarrolló un código que:
-
-1. Busca automáticamente los mejores parámetros **(p,d,q)** para cada región usando **AIC**.
-
-## Ahora realizamos un ajuste de acuerdo a los parámetros encontrados
-2. Ajustamos el modelo **ARIMA** correspondiente en el conjunto de *train*.""")
-
-
-# ==================================================
-# 🔧 AJUSTE DE MODELOS ARIMA
-# ==================================================
-st.markdown("## 🔧 Ajuste de modelos ARIMA por región")
-
-modelos = {}
-mejores = {nombre: lst[0] for nombre, lst in resultados.items() if lst}
-for nombre, info in mejores.items():
-    order = info['order']
-    train, _ = splits[nombre]  # Solo usamos el set de entrenamiento
-
-    try:
-        modelo = SARIMAX(
-            train,
-            order=order,
+        p, d, q = parametros_arima[nombre]
+        model = SARIMAX(
+            y_train,
+            order=(p, d, q),
             enforce_stationarity=False,
             enforce_invertibility=False
-        ).fit(disp=False)
+        )
+        res = model.fit(disp=False)
 
-        modelos[nombre] = modelo
-        st.success(f"✅ {nombre}: ARIMA{order} ajustado correctamente")
+        # Mostrar resumen como texto en bloque
+        st.code(res.summary().as_text(), language='text')
+
+        # Diagnóstico gráfico
+        fig = res.plot_diagnostics(figsize=(10, 5))
+        plt.suptitle(f'Diagnóstico del modelo ARIMA para {nombre}', fontsize=14)
+        st.pyplot(fig)
 
     except Exception as e:
-        st.error(f"❌ Error al ajustar ARIMA{order} para {nombre}: {e}")
+        st.error(f"❌ Error al ajustar modelo para {nombre}: {e}")
+st.markdown("""## Análisis de los Residuales del Modelo ARIMA
 
-# Si al menos un modelo fue ajustado correctamente, listarlos
-if modelos:
-    st.markdown("### 📋 Modelos ajustados:")
-    for nombre in modelos:
-        st.write(f"- **{nombre}** → ARIMA{mejores[nombre]['order']}")
+- **Línea de Residuales:**  
+  Podemos observar que, en los gráficos de línea de residuales, los errores del modelo año a año oscilan alrededor de cero, salvo algún pico aislado en *América*.
 
+- **Histograma:**  
+  En el histograma se aprecia la distribución de los errores.  
+  - En *África* y *Asia*, la distribución coincide bastante con la línea verde que representa una distribución normal.  
+  - En *América* y *Europa*, se observan colas un poco más anchas, indicando cierta desviación de la normalidad.  
+  - *Oceanía* presenta el mejor ajuste, con una distribución muy cercana a la normal.
 
+- **Q-Q Plot:**  
+  El gráfico Q-Q compara los errores reales con los que tendría una distribución normal perfecta.  
+  - La mayoría de los puntos siguen la línea roja, lo que indica normalidad en los residuos.  
+  - Se observan leves desvíos en algunos casos, pero no son significativos.
 
-
-# ────── Gráfico de residuales por región ──────
-st.markdown("## 📉 Análisis gráfico de los residuales")
-
-# Crear figura con 2 filas y 3 columnas
-fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-axes = axes.flatten()
-
-# Graficar residuales para cada modelo
-for idx, (nombre, model) in enumerate(modelos.items()):
-    resid = model.resid.dropna()
-    axes[idx].plot(resid, color='purple')
-    axes[idx].set_title(f"Residuales - {nombre}")
-    axes[idx].set_xlabel("Tiempo")
-    axes[idx].set_ylabel("Residual")
-    axes[idx].grid(True)
-
-# Si sobra un subplot
-if len(modelos) < len(axes):
-    for i in range(len(modelos), len(axes)):
-        axes[i].axis('off')
-
-plt.tight_layout()
-st.pyplot(fig)
-st.markdown("""
-## 📊 Análisis de los residuales
-
-Viendo estos gráficos de residuales, se observan **picos muy altos al inicio**, lo que es común en modelos **ARIMA** debido a los primeros pasos de diferenciación y ajuste.
-
-Después de ese punto inicial, la mayoría de los residuales parecen **oscilar alrededor de cero**, lo que es un buen signo. Sin embargo, habría que confirmarlo con pruebas estadísticas como **Ljung-Box** y con gráficos **ACF/PACF** de los residuales.
-
----
-
-### ❓ ¿Qué significa esto?
-
-- Si los **residuales no tienen tendencia ni autocorrelación significativa**, el modelo está captando bien la estructura de la serie.
-- Si los primeros valores son altos, suele ser un efecto del ajuste inicial. Lo importante es que el resto permanezca cerca de cero.
-
----
-
-### ✅ Para evaluar formalmente, habría que mirar:
-
-1. **Media cercana a 0.**  
-2. **Ljung-Box** con p-value > 0.05 ⇒ comportamiento de ruido blanco.  
-3. **ACF de los residuales** sin picos significativos fuera de la banda.
+- **Correlograma de Residuales (ACF):**  
+  Permite observar si hay autocorrelación en los errores.  
+  - En todos los gráficos, las barras se encuentran dentro de la franja azul de confianza, lo que sugiere que **los residuos se comportan como ruido blanco**, sin memoria temporal significativa.
 """)
 
-st.markdown("## 🔍 ACF de los residuales por región")
-
-regiones = list(modelos.keys())
-rows, cols = 2, 3
-
-fig_acf, axes_acf = plt.subplots(rows, cols, figsize=(18, 8))
-axes_acf = axes_acf.flatten()
-
-for i, nombre in enumerate(regiones):
-    resid = modelos[nombre].resid.dropna()
-    max_lags = max(1, min(15, len(resid)//2 - 1))
-    plot_acf(resid, lags=max_lags, ax=axes_acf[i])
-    axes_acf[i].set_title(f"ACF residuales - {nombre}")
-    axes_acf[i].grid(True)
-
-# Ejes vacíos
-for k in range(len(regiones), rows * cols):
-    axes_acf[k].axis('off')
-
-plt.tight_layout()
-st.pyplot(fig_acf)
-st.markdown("## 🔍 PACF de los residuales por región")
-
-fig_pacf, axes_pacf = plt.subplots(rows, cols, figsize=(18, 8))
-axes_pacf = axes_pacf.flatten()
-
-for i, nombre in enumerate(regiones):
-    resid = modelos[nombre].resid.dropna()
-    max_lags = max(1, min(15, len(resid)//2 - 1))
-    plot_pacf(resid, lags=max_lags, ax=axes_pacf[i], method='ywm')
-    axes_pacf[i].set_title(f"PACF residuales - {nombre}")
-    axes_pacf[i].grid(True)
-
-# Ejes vacíos
-for k in range(len(regiones), rows * cols):
-    axes_pacf[k].axis('off')
-
-plt.tight_layout()
-st.pyplot(fig_pacf)
 st.markdown("""
-## 📋 ACF + PACF residuales: Diagnóstico por región
+### 🔮 Predicciones
 
-### 1. América  
-- **ACF**: todos los lags dentro de la banda.  
-- **PACF**: sin autocorrelaciones significativas.  
-✅ Conclusión: Modelo bien ajustado. Residuos = ruido blanco.
+En el caso de **África** y **Asia**, luego de la primera diferenciación observamos que los **cambios anuales son casi siempre positivos**, es decir, cada año se emite un poco más de gases de efecto invernadero.
 
----
+Por este motivo, se añade el parámetro `trend='t'` al modelo ARIMA, lo cual le permite **proyectar una tendencia creciente** teniendo en cuenta la dinámica reciente de la serie.
 
-### 2. Asia  
-- **ACF**: todo dentro de las bandas.  
-- **PACF**: sin lags significativos.  
-✅ Conclusión: Modelo correcto. Nada que ajustar.
-
----
-
-### 3. Europa  
-- **ACF**: completamente plano.  
-- **PACF**: sin correlaciones. Ideal.  
-✅ Conclusión: Modelo perfecto para una serie tipo ruido blanco.
-
----
-
-### 4. Oceanía  
-- **ACF**: todos los lags dentro del área azul.  
-- **PACF**: estable y sin picos.  
-✅ Conclusión: Modelo adecuado, aunque fue conflictivo antes de diferenciar.
-
----
-
-### 5. África  
-- **ACF**: sin autocorrelación.  
-- **PACF**: sin picos relevantes.  
-✅ Conclusión: Modelo suficiente, residuos sin señal ⇒ no hay necesidad de agregar componentes.
-
----
-
-### ✅ Conclusión general
-
-El análisis muestra que los residuos de todos los modelos ARIMA cumplen con los requisitos de ruido blanco, por lo tanto, **los modelos ARIMA actuales son válidos para el análisis y pronóstico**.
+> 💡 **Alternativa:**  
+> Otra opción sería aplicar una **segunda diferenciación** (`d=2`), aunque esto podría introducir más ruido y hacer que el modelo pierda información relevante sobre la tendencia subyacente.
 """)
-
-
-st.markdown("""# Paso 6: Pronóstico y Validación del modelo""")
-st.markdown("""   3. Se realizan **predicciones** sobre el conjunto de *test*.  
-  4. Se calculan indices **MAE, RMSE, MAPE, sMAPE y MASE**.""")
-
-
-
-# ==================================================
-# 3) FUNCIONES DE MÉTRICAS
-# ==================================================
-
-def safe_mape(y_true, y_pred, eps=1e-8):
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    mask = np.abs(y_true) > eps
-    if mask.sum() == 0:
-        return np.nan
-    return np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100
-
-def smape(y_true, y_pred, eps=1e-8):
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    denom = (np.abs(y_true) + np.abs(y_pred)) + eps
-    return 200 * np.mean(np.abs(y_pred - y_true) / denom)
-
-def mase(y_train, y_true, y_pred, m=1):
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    denom = np.mean(np.abs(np.diff(y_train, n=m)))
-    return np.mean(np.abs(y_true - y_pred)) / denom
-
-def eval_model(y_train, y_true, y_pred):
-    mae = mean_absolute_error(y_true, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mape_val = safe_mape(y_true, y_pred)
-    smape_val = smape(y_true, y_pred)
-    mase_val = mase(y_train, y_true, y_pred)
-    return mae, rmse, mape_val, smape_val, mase_val
-
-# ==================================================
-# PREDICCIÓN Y EVALUACIÓN DE MODELOS
-# ==================================================
-
-st.markdown("## 📈 Evaluación de desempeño de los modelos ARIMA")
-
-metricas = {}
-
-for nombre, modelo in modelos.items():
-    train, test = splits[nombre]
-
-    try:
-        pred = modelo.get_forecast(steps=len(test)).predicted_mean
-        mae, rmse, mape_val, smape_val, mase_val = eval_model(train, test, pred)
-
-        metricas[nombre] = {
-            'ARIMA': str(mejores[nombre]['order']),
-            'MAE': mae,
-            'RMSE': rmse,
-            'MAPE (%)': mape_val,
-            'sMAPE (%)': smape_val,
-            'MASE': mase_val
-        }
-        st.success(f"✅ {nombre}: predicción y evaluación exitosas")
-    except Exception as e:
-        st.error(f"❌ {nombre}: error al evaluar el modelo → {e}")
-
-# ==================================================
-# MOSTRAR TABLA DE MÉTRICAS
-# ==================================================
-
-if metricas:
-    df_metricas = pd.DataFrame(metricas).T
-    df_metricas = df_metricas.round(2)
-    st.markdown("### 📊 Métricas por región")
-    st.dataframe(df_metricas, use_container_width=True)
-else:
-    st.warning("⚠️ No se generaron métricas para ninguna región.")
-
-
-st.markdown("""### Para comprobar la calidad del ajuste y predicciones, conviene graficar Train vs Test vs Predicción.""")
-
-
-# ────── Sección de visualización ──────
-st.markdown("## 🔮 Pronóstico de series por región")
-st.markdown("Se grafican los valores reales (entrenamiento y test) junto con las predicciones generadas por los modelos ARIMA seleccionados.")
-
-# ────── Crear figura con 2 filas y 3 columnas ──────
-fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-axes = axes.flatten()
-
-# ────── Graficar cada región ──────
-for idx, (nombre, info) in enumerate(mejores.items()):
-    order = info['order']
-    train, test = splits[nombre]
-
-    try:
-        modelo = SARIMAX(train, order=order, enforce_stationarity=False, enforce_invertibility=False).fit(disp=False)
-        pred = modelo.get_forecast(steps=len(test)).predicted_mean
-
-        # Gráfico en subplot correspondiente
-        axes[idx].plot(train.index, train, label='Train', color='blue')
-        axes[idx].plot(test.index, test, label='Test', color='green')
-        axes[idx].plot(test.index, pred, label='Predicción', color='red', linestyle='--')
-        axes[idx].set_title(f'{nombre} - ARIMA{order}')
-        axes[idx].set_xlabel('Tiempo')
-        axes[idx].set_ylabel('Valor')
-        axes[idx].legend()
-        axes[idx].grid(True)
-
-    except Exception as e:
-        st.error(f"❌ Error al ajustar y graficar ARIMA{order} para {nombre}: {e}")
-        axes[idx].text(0.5, 0.5, f"Error en {nombre}", ha='center', va='center')
-        axes[idx].axis('off')
-
-# ────── Si sobra un subplot, lo apagamos ──────
-if len(mejores) < len(axes):
-    for i in range(len(mejores), len(axes)):
-        axes[i].axis('off')
-
-plt.tight_layout()
-st.pyplot(fig)
-
-
-st.markdown("## 🔭 Proyección de series hasta el año 2040")
-st.markdown("Se muestran las predicciones a largo plazo a partir del conjunto de entrenamiento, con visualización de los datos históricos (`train`, `test`) y la **proyección extendida**.")
-
-# Crear figura 2x3
-fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-axes = axes.flatten()
-
-for idx, (nombre, info) in enumerate(mejores.items()):
-    order = info['order']
-    train, test = splits[nombre]
-
-    try:
-        # Convertir índices a fechas anuales
-        fechas_train = pd.date_range(start='1990', periods=len(train), freq='Y')
-        fechas_test = pd.date_range(start=fechas_train[-1] + pd.DateOffset(years=1), periods=len(test), freq='Y')
-        train.index = fechas_train
-        test.index = fechas_test
-
-        # Calcular pasos hasta 2040
-        ultimo_anio = train.index[-1].year
-        pasos = max(1, 2040 - ultimo_anio)
-
-        # Ajustar modelo
-        modelo = SARIMAX(
-            train,
-            order=order,
-            enforce_stationarity=False,
-            enforce_invertibility=False
-        ).fit(disp=False)
-
-        # Proyección futura
-        fechas_futuras = pd.date_range(start=train.index[-1] + pd.DateOffset(years=1), periods=pasos, freq='Y')
-        pred = modelo.get_forecast(steps=pasos).predicted_mean
-        pred.index = fechas_futuras
-
-        # Graficar en subplot
-        ax = axes[idx]
-        ax.plot(train.index, train, label='Train', color='blue')
-        ax.plot(test.index, test, label='Test', color='green')
-        ax.plot(pred.index, pred, label='Predicción hasta 2040', color='red', linestyle='--')
-        ax.set_title(f'{nombre} - ARIMA{order}')
-        ax.set_xlabel('Año')
-        ax.set_ylabel('Valor')
-        ax.legend()
-        ax.grid(True)
-
-    except Exception as e:
-        st.error(f"❌ Error en la predicción extendida de {nombre}: {e}")
-        axes[idx].text(0.5, 0.5, f"Error en {nombre}", ha='center', va='center')
-        axes[idx].axis('off')
-
-# Desactivar subplots extra si hay menos de 6 regiones
-if len(mejores) < len(axes):
-    for i in range(len(mejores), len(axes)):
-        axes[i].axis('off')
-
-plt.tight_layout()
-st.pyplot(fig)
-
-
-
-st.markdown("""## 🔍 Comparamos métricas sobre Train vs Test para ver que tan bueno es el modelo""")
-
-
-warnings.filterwarnings("ignore")
-
-# ----------------------------
-# Helpers de métricas
-# ----------------------------
-
-def safe_mape(y_true, y_pred, eps=1e-8):
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    mask = np.abs(y_true) > eps
-    if mask.sum() == 0:
-        return np.nan
-    return np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100
-
-def smape(y_true, y_pred, eps=1e-8):
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-    denom = (np.abs(y_true) + np.abs(y_pred)) + eps
-    return 200 * np.mean(np.abs(y_pred - y_true) / denom)
-
-def mase(y_train, y_true, y_pred, m=1):
-    y_train = np.asarray(y_train)
-    denom = np.mean(np.abs(np.diff(y_train, n=m)))
-    return np.mean(np.abs(y_true - y_pred)) / denom
-
-# ----------------------------
-# Mejores órdenes (ARIMA) por AIC
-# ----------------------------
-
-best_orders = {
-    'América': (2, 1, 3),
-    'Asia':    (3, 1, 3),
-    'Europa':  (1, 0, 3),
-    'Oceanía': (2, 1, 3),
-    'África':  (0, 1, 3)
+series_dict = {
+    'América': serie_america,
+    'Asia': serie_asia,
+    'Europa': serie_europa,
+    'Oceanía': serie_oceania,
+    'África': serie_africa
 }
 
-# ----------------------------
-# Evaluación
-# ----------------------------
+modelos_config = {
+    'América':  {'order': (0, 1, 3)},
+    'Asia':     {'order': (1, 1, 1), 'trend': 't'},
+    'Europa':   {'order': (1, 1, 3)},
+    'Oceanía':  {'order': (2, 1, 3)},
+    'África':   {'order': (2, 1, 3), 'trend': 't'}
+}
 
-st.markdown("## 📈 Evaluación final de modelos ARIMA")
-st.markdown("Se comparan las métricas en entrenamiento (`train`), prueba (`test`) y se evalúa el comportamiento de los residuales con **Ljung-Box**.")
+h_test, h_future = 5, 5
 
-resultados = {}
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+axes = axes.flatten()
 
-for nombre, order in best_orders.items():
-    st.markdown(f"### 🌍 {nombre} - ARIMA{order}")
+for i, (nombre, df) in enumerate(series_dict.items()):
+    serie = df.set_index('Año')['Valor'].sort_index().dropna().astype(float)
+    serie.index = pd.PeriodIndex(serie.index, freq='Y')
 
-    try:
-        train, test = splits[nombre]
+    y_train, y_test = serie.iloc[:-h_test], serie.iloc[-h_test:]
+    cfg = modelos_config[nombre]
+    trend = cfg.get('trend', 'n')
 
-        # Ajuste del modelo
-        model = SARIMAX(train, order=order,
-                        enforce_stationarity=False,
-                        enforce_invertibility=False).fit(disp=False)
+    res = SARIMAX(
+        y_train,
+        order=cfg['order'],
+        trend=trend,
+        enforce_stationarity=False,
+        enforce_invertibility=False
+    ).fit(disp=False)
 
-        # Predicciones en train (ajuste)
-        fitted = model.fittedvalues
-        y_train_common = train.loc[fitted.index]
+    fitted = res.fittedvalues
+    fc_test = res.get_forecast(h_test)
+    pred_test = fc_test.predicted_mean
+    ci_test = fc_test.conf_int()
 
-        mae_train = mean_absolute_error(y_train_common, fitted)
-        rmse_train = np.sqrt(mean_squared_error(y_train_common, fitted))
+    fc_fut = res.get_forecast(h_future)
+    pred_fut = fc_fut.predicted_mean
+    ci_fut = fc_fut.conf_int()
 
-        # Predicciones en test
-        fc = model.get_forecast(steps=len(test))
-        y_pred = fc.predicted_mean
+    pred_test.index = pd.period_range(y_train.index[-1] + 1, periods=h_test, freq='Y')
+    pred_fut.index = pd.period_range(pred_test.index[-1] + 1, periods=h_future, freq='Y')
+    ci_test.index, ci_fut.index = pred_test.index, pred_fut.index
 
-        mae_test = mean_absolute_error(test, y_pred)
-        rmse_test = np.sqrt(mean_squared_error(test, y_pred))
-        mape_test = safe_mape(test, y_pred)
-        smape_test = smape(test, y_pred)
-        mase_test = mase(train, test, y_pred)
+    pred_full = pd.concat([fitted, pred_test, pred_fut])
+    mape = mean_absolute_percentage_error(y_test, pred_test) * 100
 
-        # Ljung-Box
-        lb = acorr_ljungbox(model.resid.dropna(), lags=[10], return_df=True)
-        lb_p = float(lb['lb_pvalue'].iloc[-1])
+    ax = axes[i]
+    ax.plot(serie.index.to_timestamp(), serie, label='Observado', color='steelblue', alpha=.6)
+    ax.plot(pred_full.index.to_timestamp(), pred_full, color='firebrick', lw=2, label='Modelo ARIMA')
+    ax.fill_between(pred_test.index.to_timestamp(), ci_test.iloc[:, 0], ci_test.iloc[:, 1],
+                    color='firebrick', alpha=.25, label='IC 95 % (test)')
+    ax.fill_between(pred_fut.index.to_timestamp(), ci_fut.iloc[:, 0], ci_fut.iloc[:, 1],
+                    color='darkorange', alpha=.20, label='IC 95 % (futuro)')
 
-        resultados[nombre] = {
-            'ARIMA(p,d,q)': str(order),
-            'MAE_train': mae_train,
-            'RMSE_train': rmse_train,
-            'MAE_test': mae_test,
-            'RMSE_test': rmse_test,
-            'MAPE_test': mape_test,
-            'sMAPE_test': smape_test,
-            'MASE_test': mase_test,
-            'LjungBox_p(resid)': lb_p
-        }
+    ax.axvline(y_train.index[-1].to_timestamp(), color='grey', ls='--')
+    ax.axvline(y_test.index[-1].to_timestamp(), color='grey', ls='--')
 
-        st.success("✅ Evaluación completada")
+    ax.set(title=f'{nombre} (MAPE: {mape:.2f}%)',
+           xlabel='Año', ylabel='kt CO₂-eq')
+    ax.legend()
+    ax.grid(ls='--', alpha=.3)
 
-    except Exception as e:
-        st.error(f"❌ Error en la evaluación de {nombre}: {e}")
+# Si hay menos de 6 gráficos, eliminar ejes sobrantes
+if len(series_dict) < len(axes):
+    for j in range(len(series_dict), len(axes)):
+        fig.delaxes(axes[j])
 
-# ----------------------------
-# Tabla resumen final
-# ----------------------------
-
-if resultados:
-    df_res = pd.DataFrame(resultados).T
-    df_res = df_res.round(3)
-    st.markdown("### 📊 Resultados por región")
-    st.dataframe(df_res, use_container_width=True)
-else:
-    st.warning("⚠️ No se pudieron evaluar los modelos.")
-
-
-st.markdown(""" ### Análisis del modelo
-
-El modelo se ve bastante bueno en general, pero hay puntos a analizar:
-
-#### 1. Evaluación de métricas (Train vs Test)
-
-**RMSE_train vs RMSE_test:**
-- Los valores de **RMSE_test** son menores que **RMSE_train**.  
-  Esto sugiere que el modelo no está sobreajustado.
-
-**MAPE_test (error relativo):**
-- **Asia (1.46%)** y **África (4.67%)** tienen muy buen poder predictivo.
-- **América (3.15%)** y **Oceanía (5.04%)** también son aceptables (<10%).
-- **Europa (10.7%)** es el peor, pero aún aceptable.
-
----
-
-#### 2. Ljung-Box Test (residuales)
-
-- **LjungBox_p(resid) ≈ 1.0** en todas las series:  
-  Esto significa que los residuales son ruido blanco, no hay autocorrelación remanente, lo cual es un excelente indicador.
-
----
-
-#### 3. MASE vacío (NaN)
-
-- Esto ocurre porque `mase()` requiere una serie de referencia (diferencia *naive*)  
-  y parece que hubo un error en cómo se pasó `y_train`.  
-  **Se soluciona cambiando en el código:**
-
-#### 4. Para validar lo modelos realizamos gráficos de diagnóstico de residuales (Histograma, ACF y QQ-Plot) para cada región
-""")
-import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-from statsmodels.graphics.tsaplots import plot_acf
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from statsmodels.stats.diagnostic import acorr_ljungbox
-from scipy.stats import norm
-import statsmodels.api as sm
-
-# ============================================
-# Función adaptada para Streamlit
-# ============================================
-def plot_diagnostics_residuals(modelos, splits):
-    st.markdown("## 🧪 Diagnóstico gráfico de residuales")
-    st.markdown("""
-    Para cada región se presentan:
-    - 📊 **Histograma** de los residuales + curva normal teórica
-    - 🔁 **Autocorrelación (ACF)** con p-valor de Ljung-Box
-    - 🔍 **QQ plot** para analizar la normalidad de los residuales
-    """)
-
-    regiones = list(modelos.keys())
-    fig, axes = plt.subplots(3, len(regiones), figsize=(5 * len(regiones), 10))
-
-    if len(regiones) == 1:
-        axes = np.expand_dims(axes, axis=1)
-
-    for i, region in enumerate(regiones):
-        train, _ = splits[region]
-        model = modelos[region]
-        residuals = model.resid.dropna()
-
-        # -------------------
-        # Histograma + curva normal
-        # -------------------
-        mu, sigma = residuals.mean(), residuals.std()
-        sns.histplot(residuals, bins=10, kde=False, color='skyblue', stat='density', ax=axes[0, i])
-        x = np.linspace(residuals.min(), residuals.max(), 100)
-        y = norm.pdf(x, mu, sigma)
-        axes[0, i].plot(x, y, 'r--', label='Normal teórica')
-        axes[0, i].set_title(f'{region} - Histograma')
-        axes[0, i].legend()
-
-        # -------------------
-        # ACF + Ljung-Box
-        # -------------------
-        lb_p = acorr_ljungbox(residuals, lags=[10], return_df=True)['lb_pvalue'].iloc[0]
-        plot_acf(residuals, lags=10, ax=axes[1, i])
-        axes[1, i].set_title(f'{region} - ACF\nLjung-Box p = {lb_p:.3f}')
-
-        # -------------------
-        # QQ Plot
-        # -------------------
-        sm.qqplot(residuals, line='s', ax=axes[2, i])
-        axes[2, i].set_title(f'{region} - QQ Plot')
-
-    plt.tight_layout()
-    st.pyplot(fig)
-
-# ============================================
-# Entrenamiento de modelos si no existen
-# ============================================
-
-if 'modelos' not in globals() or not modelos:
-    modelos = {}
-    for nombre, order in best_orders.items():
-        train, _ = splits[nombre]
-        modelo = SARIMAX(train, order=order,
-                         enforce_stationarity=False,
-                         enforce_invertibility=False).fit(disp=False)
-        modelos[nombre] = modelo
-
-# ============================================
-# Llamar a la función y mostrar gráficos
-# ============================================
-
-plot_diagnostics_residuals(modelos, splits)
+plt.tight_layout()
+st.pyplot(fig)
 
 
-st.markdown("""# 🔍 _Conclusión del análisis_
+st.markdown("""
+### 🌊 Caso Oceanía
 
-## 📌 Estacionariedad
-- Con una diferenciación (**d = 1**), la mayoría de las series (América, Asia, África, Oceanía) se volvieron estacionarias.  
-- Europa ya era estacionaria sin necesidad de diferenciación (**d = 0**).
+En la serie de Oceanía habíamos observado que la **varianza explicada por un ciclo de 5 años supera el 38%**.  
+Sin embargo, luego de aplicar una primera diferenciación, observamos en los gráficos **ACF** y **PACF** que los *lags* 4, 5 y 10 **caen dentro de la franja azul**, lo que indica que **la estacionalidad ya está explicada**.
 
-## ⚙️ Selección de parámetros (p,d,q)
-Usamos **AIC/BIC** para encontrar los mejores modelos ARIMA por región:
+Aplicar un modelo **SARIMA** implicaría agregar más parámetros para representar solo **6 ciclos observados (30 años)**, lo cual podría llevar a un **sobreajuste** por la escasez de datos.
 
-- **América** → ARIMA(2,1,3)  
-- **Asia** → ARIMA(3,1,3)  
-- **Europa** → ARIMA(1,0,3)  
-- **Oceanía** → ARIMA(2,1,3)  
-- **África** → ARIMA(0,1,3)
-
-## 🧪 Validación con Train/Test
-- **MAPE y sMAPE**: son bajos (< 8%) en todas las regiones, lo cual indica buen poder predictivo.  
-- **Ljung-Box**: todos los modelos tienen residuales sin autocorrelación (p ≈ 1.0).  
-- **RMSE Test vs Train**: no hay señales claras de sobreajuste.
-
-## 🩺 Diagnóstico de residuales (Histograma, ACF, QQ-plot)
-- **América, Asia, África**: residuales aceptables, sin autocorrelación y con distribución razonable.  
-- **Europa**: buen modelo, aunque con residuales algo sesgados.  
-- **Oceanía**: residuales con colas más pesadas. El modelo podría optimizarse (probar ARIMA(2,1,1) o ARIMA(1,1,2)).
-
----
-
-# ✅ Conclusión general
-
-- Los modelos seleccionados son adecuados y con buen poder predictivo, especialmente en Asia y África (**MAPE < 3%**).  
-- Oceanía es la región más débil, pero aún con un error aceptable (~5%).  
-- No hay señales fuertes de autocorrelación remanente, por lo que los modelos son válidos para *forecasting*.
-
----
-
-# 📊 Conclusión final del análisis utilizando ARIMA
-
-- Los modelos ARIMA elegidos son sólidos para América, Asia, Europa y África.  
-- Oceanía podría tener un error algo mayor, principalmente por la escasez de datos y mayor ruido relativo.  
-- No se observa sobreajuste ni autocorrelación en residuales (**Ljung-Box p > 0.05**).  
-- Las métricas en test son razonablemente bajas, por lo que **el análisis se puede dar como completado**.
+Además, los resultados obtenidos con el modelo **ARIMA simple** muestran un **ajuste adecuado** y consistente, por lo tanto **no se justifica complejizar el modelo** con un componente estacional.
 """)
 
-st.markdown(""""# **Utilizando Prophet**""")
 
-st.markdown(""" ## 🌍 ¿Por qué usar Prophet para modelar emisiones de CO₂?
+st.markdown("""## Utilizando Prophet""")
 
-### ¿Qué es Prophet?
+st.markdown("""
+### 🔮 ¿Qué es Prophet?
 
 **Prophet** es una herramienta de pronóstico de series temporales desarrollada por **Facebook (Meta)**. Está pensada para:
 
@@ -2753,143 +2355,126 @@ st.markdown(""" ## 🌍 ¿Por qué usar Prophet para modelar emisiones de CO₂?
 
 ---
 
-### 📐 Descomposición del modelo Prophet
+### 🧮 Prophet descompone la serie temporal de la siguiente forma:
 
-Prophet representa la serie temporal con la siguiente fórmula:
-    * y(t) = g(t) + s(t) + h(t) + εₜ
-
+- y(t) = g(t) + s(t) + h(t) + ε_t            
 
 Donde:
 
-- `g(t)` → Tendencia (puede ser lineal o logística, con posibles **cambios de pendiente**).
-- `s(t)` → Estacionalidad (opcional, puede ser anual, semanal, diaria).
-- `h(t)` → Efectos por fechas especiales (festivos, eventos).
-- `εₜ` → Ruido aleatorio (residuo no explicado).
+- **g(t)** → Tendencia (puede ser lineal o logística, con posibles "cambios de pendiente").
+- **s(t)** → Estacionalidad (opcional, puede ser anual, semanal, diaria).
+- **h(t)** → Efectos por fechas especiales (festivos, eventos).
+- **ε_t** → Ruido aleatorio (residuo no explicado).
 
 ---
 
-### 🧠 Ventajas de Prophet aplicadas a tu dataset
+### ✅ Beneficios clave frente a ARIMA
 
-| Beneficio clave                        | ¿Por qué importa en tu dataset?                                                                                              |
-|----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Captura **cambios de tendencia**       | Las emisiones no evolucionan linealmente. Prophet detecta **cambios de pendiente automáticamente**, lo que ARIMA no hace bien. |
-| No requiere **estacionariedad**        | Prophet **no exige diferenciar** ni transformar la serie. SARIMA sí, y esto puede distorsionar el significado del pronóstico. |
-| Funciona bien con **datos anuales**    | Las series son anuales. Prophet acepta fácilmente series con cualquier frecuencia sin reconfigurar nada.                      |
-| Maneja bien la **incertidumbre**       | Prophet devuelve automáticamente **intervalos de confianza del 95%**, facilitando la comunicación de riesgo/incertidumbre.    |
-| Automatizable por región               | Se puede aplicar el mismo modelo a cada continente sin tunear manualmente los parámetros. Ideal para **automatización**.      |
-| Interpretabilidad de componentes       | Prophet permite ver **la tendencia sola**, algo útil para análisis visual y argumentación.                                    |
-
-
+| Beneficio clave                       | ¿Por qué importa en tu dataset?                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+|  Captura **cambios de tendencia**     | Las emisiones no evolucionan linealmente. Prophet detecta **cambios de pendiente automáticamente**, lo que ARIMA no hace bien.  |
+|  No requiere **estacionariedad**      | Prophet **no exige diferenciar** ni transformar la serie. SARIMA sí, y esto puede distorsionar el significado del pronóstico.   |
+|  Funciona bien con **datos anuales**  | Las series son anuales. Prophet acepta fácilmente series con cualquier frecuencia sin reconfigurar nada.                        |
+|  Maneja bien la **incertidumbre**     | Prophet devuelve automáticamente **intervalos de confianza del 95%**, facilitando la comunicación de riesgo/incertidumbre.      |
+|  Automatizable por región             | Se puede aplicar el mismo modelo a cada continente sin tunear manualmente los parámetros. Ideal para **automatización**.        |
+|  Interpretabilidad de componentes     | Prophet permite ver **la tendencia sola**, algo útil para análisis visual y argumentación.                                      |
 """)
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import logging
-import warnings
-
-from prophet import Prophet
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-
-# ───── Silenciar Prophet y CmdStanPy ─────
-logging.getLogger('prophet').setLevel(logging.CRITICAL)
-logging.getLogger('cmdstanpy').setLevel(logging.CRITICAL)
-warnings.filterwarnings("ignore")
-
-# ───── Simulación de series por región ─────
-np.random.seed(42)
-fechas = pd.date_range(start='1990', periods=30, freq='Y')
-regiones = {
-    'América': np.linspace(1e6, 1.5e7, 30) + np.random.normal(0, 5e5, 30),
-    'Asia':    np.linspace(2e6, 1.2e7, 30) + np.random.normal(0, 4e5, 30),
-    'Europa':  np.linspace(5e6, 6e6, 30)   + np.random.normal(0, 2e5, 30),
-    'Oceanía': np.linspace(3e6, 4e6, 30)   + np.random.normal(0, 1.5e5, 30),
-    'África':  np.linspace(2e6, 8e6, 30)   + np.random.normal(0, 3e5, 30),
-}
-
-# ───── Setup gráfico ─────
-st.markdown("## 🌎 Predicción de emisiones por región con Prophet")
-fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-axes = axes.flatten()
-
+h_test = 5
+h_future = 5
 resultados = {}
 
-for i, (nombre, valores) in enumerate(regiones.items()):
-    df = pd.DataFrame({'ds': fechas, 'y': valores})
+fig, axes = plt.subplots(2, 3, figsize=(22, 10))
+axes = axes.flatten()
 
-    # División en train/test
-    split_idx = int(len(df) * 0.8)
-    df_train = df.iloc[:split_idx]
-    df_test = df.iloc[split_idx:]
+for idx, (nombre, df) in enumerate(series_dict.items()):
+    # Preprocesamiento
+    serie = df[['Año', 'Valor']].dropna().copy()
+    serie = serie.sort_values('Año')
+    serie['Año'] = serie['Año'].astype(int)
+    serie = serie.rename(columns={'Año': 'ds', 'Valor': 'y'})
+    serie['ds'] = pd.to_datetime(serie['ds'], format='%Y')
 
-    # Entrenamiento
-    model = Prophet()
-    model.fit(df_train)
+    y_train = serie.iloc[:-h_test]
+    y_test = serie.iloc[-h_test:]
 
-    # Crear 21 años futuros
-    future = model.make_future_dataframe(periods=21, freq='Y')
-    forecast = model.predict(future)
+    # Modelo Prophet
+    model = Prophet(
+        yearly_seasonality=False,
+        changepoint_range=0.9,
+        n_changepoints=5
+    )
+    model.add_seasonality(name='quinquenal', period=5, fourier_order=2)
+    model.fit(y_train)
 
-    # Extraer solo predicciones para test
-    forecast_test = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(len(df_test)).reset_index(drop=True)
-    df_test = df_test.reset_index(drop=True)
+    future_test = model.make_future_dataframe(periods=h_test, freq='Y', include_history=False)
+    forecast_test = model.predict(future_test)
 
-    # Métricas
-    y_true = df_test['y'].values
-    y_pred = forecast_test['yhat'].values
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mae = mean_absolute_error(y_true, y_pred)
-    resultados[nombre] = {'RMSE': rmse, 'MAE': mae}
+    future_total = model.make_future_dataframe(periods=h_test + h_future, freq='Y')
+    forecast_total = model.predict(future_total)
+
+    pred_test = forecast_test.set_index('ds')['yhat']
+    pred_future = forecast_total.set_index('ds')['yhat'].iloc[-h_future:]
+    ci_test = forecast_test.set_index('ds')[['yhat_lower', 'yhat_upper']]
+    ci_future = forecast_total.set_index('ds')[['yhat_lower', 'yhat_upper']].iloc[-h_future:]
+
+    mape = mean_absolute_percentage_error(y_test['y'].values, pred_test.values) * 100
 
     # Gráfico
-    ax = axes[i]
-    ax.plot(df_train['ds'], df_train['y'], label='Train', color='blue')
-    ax.plot(df_test['ds'], df_test['y'], label='Test', color='black')
-    ax.plot(forecast_test['ds'], forecast_test['yhat'], label='Predicción', linestyle='--', color='red')
-    ax.fill_between(forecast_test['ds'], forecast_test['yhat_lower'], forecast_test['yhat_upper'],
-                    color='pink', alpha=0.3, label='IC 95%')
-    ax.set_title(f'{nombre}\nRMSE: {rmse:,.0f} | MAE: {mae:,.0f}')
-    ax.set_xlabel('Fecha')
-    ax.set_ylabel('Valor')
-    ax.legend()
-    ax.grid(True)
+    ax = axes[idx]
+    ax.plot(y_train['ds'], y_train['y'], label='Histórico (train)', color='steelblue')
+    ax.plot(y_test['ds'],  y_test['y'], label='Real (test)', color='black', lw=2)
+    ax.plot(pred_test.index, pred_test.values, label='Pronóstico test', color='firebrick')
+    ax.fill_between(pred_test.index, ci_test['yhat_lower'], ci_test['yhat_upper'],
+                    color='firebrick', alpha=.25)
+    ax.plot(pred_future.index, pred_future.values, label='Proyección 8 años', color='orange')
+    ax.fill_between(pred_future.index, ci_future['yhat_lower'], ci_future['yhat_upper'],
+                    color='orange', alpha=.20)
+    ax.axvline(y_train['ds'].iloc[-1], color='grey', ls='--', lw=1)
+    ax.axvline(y_test['ds'].iloc[-1],  color='grey', ls='--', lw=1)
+    ax.set(title=f'{nombre} (MAPE={mape:.2f}%)', xlabel='Año', ylabel='Kt CO₂‑eq')
+    ax.grid(ls='--', alpha=.4)
 
-# Si hay subplots vacíos, desactivarlos
-for j in range(i + 1, len(axes)):
-    axes[j].axis('off')
+    resultados[nombre] = {
+        'modelo': model,
+        'pred_test': pred_test,
+        'ci_test': ci_test,
+        'pred_future': pred_future,
+        'ci_future': ci_future,
+        'mape': mape
+    }
 
-plt.tight_layout()
+# Ocultar ejes sobrantes si hay menos de 6
+if len(series_dict) < 6:
+    for j in range(len(series_dict), 6):
+        fig.delaxes(axes[j])
+
+fig.tight_layout()
 st.pyplot(fig)
 
-# ───── Mostrar tabla de métricas ─────
-st.markdown("## 📊 Resumen de métricas por región")
-df_resultados = pd.DataFrame(resultados).T.round(2)
-st.dataframe(df_resultados, use_container_width=True)
 
-# ───── Conclusión final ─────
 st.markdown("""
-## 📌 Conclusión general del modelo Prophet (Predicción hasta 2040)
+### ✅ Conclusiones
 
-Evaluando el modelo Prophet aplicado a cada una de las regiones del dataset, se obtuvieron las siguientes métricas de error:
+Aplicando **Prophet** con una tendencia quinquenal, observamos que en la mayoría de los casos el **📉 MAPE es mayor** que en ARIMA, salvo en Asia donde es casi similar.
 
-| Región   | RMSE (Raíz del Error Cuadrático Medio) | MAE (Error Absoluto Medio) |
-|----------|-----------------------------------------|-----------------------------|
-| Europa   | **569.939,45**                          | **558.454,39**              |
-| Oceanía  | 631.438,21                               | 624.085,50                  |
-| África   | 3.042.076,37                             | 3.030.549,65                |
-| Asia     | 4.886.453,21                             | 4.873.406,49                |
-| América  | **6.506.793,50**                         | **6.502.227,45**            |
+🔍 En este caso, **preferimos mantener el modelo ARIMA**, ya que Prophet es más confiable en series con:
 
-### 🔎 Observaciones:
+- ⏱️ **Mayor frecuencia temporal** (diaria, mensual),
+- 📈 **Más observaciones históricas**.
 
-- **Europa** y **Oceanía** presentan los errores más bajos. Especialmente Europa, donde el modelo Prophet se ajusta de forma excelente: RMSE y MAE por debajo de 600 mil unidades.
-- En **África** y **Asia** los errores son intermedios. Si bien superan los 3 millones, el modelo logra mantener una tendencia razonable.
-- **América** muestra el peor desempeño en términos de error absoluto. Esto sugiere una mayor variabilidad, posibles outliers o un modelo insuficiente para capturar cambios estructurales.
+> ⚠️ Con solo ~30 observaciones por serie, **Prophet tiende a sobreajustarse**, interpretando como patrones reales lo que probablemente es solo ruido.
 
-📈 A pesar de estos niveles de error, las predicciones siguen una **tendencia general coherente** y los **intervalos de confianza (IC 95%)** son estables y razonables hasta el año 2040.
+---
+
+Con **datos anuales** y sin estacionalidades dentro del año:
+
+❌ **Prophet se ajusta de más** y comete más errores.  
+✅ **ARIMA**, en cambio:
+
+- ✔️ Es más **sencillo**,
+- ✔️ Usa menos **supuestos**,
+- ✔️ Y ofrece **mejores pronósticos** para este tipo de series.
+
+🎯 Por estas razones, **ARIMA es el modelo más adecuado** en este contexto.
 """)
-
-
-
