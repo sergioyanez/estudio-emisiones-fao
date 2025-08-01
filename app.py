@@ -435,6 +435,52 @@ df_serie = df_pais.groupby(df_pais['Año'].dt.year)['Valor_Mt'].sum().reset_inde
 fig_pais = px.line(df_serie, x='Año', y='Valor_Mt', title=f"Evolución de emisiones en {pais_sel}")
 st.plotly_chart(fig_pais, use_container_width=True)
 
+#########################################################################################
+#########################################################################################
+
+
+# Filtrar datos válidos
+df_filtrado = df_countries[df_countries['Valor_Mt'].notnull() & (df_countries['Valor_Mt'] > 0)]
+
+df_treemap = df_filtrado.groupby(['Área', 'Elemento'])['Valor_Mt'].sum().reset_index()
+
+# Crear una columna para mostrar texto
+df_treemap['label'] = df_treemap['Elemento'] + '<br>' + df_treemap['Valor_Mt'].round(2).astype(str) + ' Mt'
+
+# Crear treemap
+fig = px.treemap(
+    df_treemap,
+    path=['Área', 'Elemento'],
+    values='Valor_Mt',
+    color='Área',
+    color_discrete_sequence=px.colors.qualitative.Safe,
+    custom_data=['Valor_Mt']
+)
+
+# Mostrar texto dentro del bloque
+fig.update_traces(
+    textinfo="label+value",
+    texttemplate='%{label}<br>%{value:.2s} Mt',
+    hovertemplate='<b>%{label}</b><br>Valor: %{customdata[0]:,.2f} Mt<extra></extra>',
+)
+
+# Ajustes generales
+fig.update_layout(
+    title='Todas las Emisiones por País y Tipo de gas (Mt)',
+    margin=dict(t=50, l=25, r=25, b=25),
+    font=dict(size=24),
+    title_font=dict(size=24, color='#222', family='Arial'),
+    uniformtext=dict(minsize=10, mode='hide')
+)
+
+# Mostrar en Streamlit
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+#########################################################################################
+#########################################################################################
+
 st.markdown("""## Expansión en la cobertura de países a partir de 1990
 A partir del año 1990 se observa un incremento significativo en la cantidad de países con datos disponibles. Este cambio no necesariamente implica un aumento real en las emisiones, sino una mejora en la cobertura geográfica del dataset.
 
