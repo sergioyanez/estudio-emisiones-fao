@@ -2208,9 +2208,7 @@ Además, se evaluó que los residuales **no presenten autocorrelación** mediant
 - **África**: ARIMA(2,1,3)
 """)
 
-import streamlit as st
-import matplotlib.pyplot as plt
-from statsmodels.tsa.statespace.sarimax import SARIMAX
+
 
 # Parámetros por continente
 parametros_arima = {
